@@ -30,6 +30,13 @@ const productSchema = new mongoose.Schema(
       required: true,
     },
 
+    imageUrl: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+
+    // Kept temporarily so existing local records can be normalized on read.
     images: [
       {
         type: String,
@@ -49,6 +56,16 @@ const productSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
+    toJSON: {
+      transform(_document, value) {
+        if (!value.imageUrl && value.images?.[0]) {
+          value.imageUrl = value.images[0];
+        }
+        delete value.images;
+        delete value.__v;
+        return value;
+      },
+    },
   }
 );
 

@@ -23,8 +23,18 @@ const protect = (req, res, next) => {
         // Verifikasi token
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-        // Simpan informasi user ke request
-        req.user = decoded;
+        const id = decoded.sub || decoded.id;
+        const type = decoded.type || decoded.role;
+
+        if (!id || !["customer", "seller"].includes(type)) {
+            return res.status(401).json({
+                success: false,
+                message: "Token tidak valid.",
+            });
+        }
+
+        // Normalize legacy tokens while issuing the documented sub/type shape.
+        req.user = { ...decoded, id, sub: id, role: type, type };
 
         next();
     } catch (error) {

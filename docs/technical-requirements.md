@@ -5,7 +5,7 @@
 |---|---|
 | **Course** | Specialized Platform Development |
 | **Deliverable** | Tugas Kelompok Project Lab — Week 10 |
-| **Document** | Technical Requirements (Customer site + Seller site) |
+| **Document** | Technical Requirements (Unified web marketplace) |
 | **Companion** | `product-requirements.md` |
 | **Status** | Draft for review |
 | **Date** | 2026-08-01 |
@@ -14,16 +14,14 @@
 
 ## 1. Introduction
 
-This document specifies the **technical design** for the marketplace defined in `product-requirements.md`. It covers system architecture, the shared API, the data model, authentication/authorization, the four client apps, deployment, monitoring, and local setup.
+This document specifies the **technical design** for the marketplace defined in `product-requirements.md`. It covers system architecture, the shared API, the data model, authentication/authorization, the unified web app, monitoring, and local setup. Mobile clients and public deployment are documented as future work.
 
-The system is **four client applications served by one backend**:
+The current system is **one unified web application served by one backend**:
 
-1. Customer Web (React)
-2. Customer Mobile (React Native / Expo)
-3. Seller Web (React)
-4. Seller Mobile (React Native / Expo)
+1. Customer storefront routes (React + Vite)
+2. Seller dashboard routes (React + Vite)
 
-All four consume a single **Node.js + Express REST API** backed by **MongoDB**.
+Both route surfaces consume a single **Node.js + Express REST API** backed by **MongoDB**. Native mobile clients can be added later without changing the API contract.
 
 ---
 
@@ -31,25 +29,16 @@ All four consume a single **Node.js + Express REST API** backed by **MongoDB**.
 
 ```mermaid
 flowchart TB
-    subgraph Clients
-        CW["Customer Web<br/>(React + Vite)"]
-        CM["Customer Mobile<br/>(React Native / Expo)"]
-        SW["Seller Web<br/>(React + Vite)"]
-        SM["Seller Mobile<br/>(React Native / Expo)"]
-    end
+    WEB["Unified Web<br/>(React + Vite)<br/>customer + seller routes"]
 
     API["REST API<br/>(Node.js + Express)"]
     DB[("MongoDB<br/>(Atlas)")]
     MON["Monitoring<br/>Google Analytics / LogRocket"]
 
-    CW -->|"HTTPS / JSON<br/>Axios · JWT"| API
-    CM -->|"HTTPS / JSON<br/>Axios · JWT"| API
-    SW -->|"HTTPS / JSON<br/>Axios · JWT"| API
-    SM -->|"HTTPS / JSON<br/>Axios · JWT"| API
+    WEB -->|"HTTPS / JSON<br/>Axios · JWT"| API
 
     API -->|"Mongoose ODM"| DB
-    CW -.->|"page/events"| MON
-    SW -.->|"page/events"| MON
+    WEB -.->|"page/events"| MON
 ```
 
 **Design principles**
@@ -66,7 +55,7 @@ sequenceDiagram
     participant API as Express API
     participant DB as MongoDB
 
-    U->>API: POST /api/cart/items { productId, qty }<br/>Authorization: Bearer customerJWT
+    U->>API: POST /api/cart/items { productId, quantity }<br/>Authorization: Bearer customerJWT
     API->>API: authMiddleware → verify JWT, require type=customer
     alt token missing/invalid
         API-->>U: 401 Unauthorized
@@ -84,15 +73,15 @@ sequenceDiagram
 | Layer | Technology | Notes |
 |-------|------------|-------|
 | Customer/Seller Web | **React 18 + React Router**, built with **Vite** | Responsive via Flexbox / CSS Grid |
-| Mobile (both sides) | **React Native + Expo** | JWT stored on device; QR-shareable build |
+| Mobile (both sides) | React Native + Expo | Deferred; future clients will reuse the API |
 | HTTP client | **Axios** (Fetch acceptable) | Shared request/interceptor pattern |
 | Backend | **Node.js + Express.js** | RESTful API |
 | Database | **MongoDB** (Atlas) + **Mongoose** | Schemas & validation |
 | Auth | **JWT** (`jsonwebtoken`) + **bcrypt** | Separate customer/seller identities |
 | Validation | **express-validator** (or `zod`) | Server-side input validation |
-| Deploy — Web | **Vercel** (or Netlify) | Two web projects (customer, seller) |
-| Deploy — API | **Render** (or Heroku) | Single service |
-| Deploy — Mobile | **Expo** (EAS / `expo publish`) | Shareable QR code |
+| Deploy — Web | Vercel (or Netlify) | Deferred public deployment; one web project when enabled |
+| Deploy — API | Render (or Heroku) | Deferred public deployment; single service when enabled |
+| Deploy — Mobile | Expo (EAS) | Deferred |
 | Monitoring | **Google Analytics** or **LogRocket** | On web clients |
 
 > The stack is fixed to match the graded Lab modules. Choose **one** option where alternatives are listed (e.g. Vercel *or* Netlify) and use it consistently.
@@ -101,7 +90,7 @@ sequenceDiagram
 
 ## 4. Suggested Repository Structure
 
-A monorepo keeps the shared API and four clients discoverable; separate repos are equally acceptable if the team prefers.
+A monorepo keeps the shared API and unified web client discoverable; future mobile clients can be added without changing the current boundaries.
 
 ```
 marketplace/
@@ -113,11 +102,8 @@ marketplace/
 │   │   ├── middleware/      # auth (JWT), validation, error handler
 │   │   └── app.js
 │   └── package.json
-├── web-customer/            # React + Vite  (deployed to Vercel)
-├── web-seller/              # React + Vite  (deployed to Vercel)
-├── mobile-customer/         # React Native + Expo
-├── mobile-seller/           # React Native + Expo
-└── docs/                    # this PRD + TRD
+├── web/                     # Unified React + Vite app (customer + seller routes)
+└── docs/                    # this PRD + TRD + design system
 ```
 
 ---
@@ -141,47 +127,51 @@ erDiagram
         string id
         string name
         string email
-        string passwordHash
+        string password
+        string phone
         string address
     }
     SELLER {
         string id
         string storeName
         string email
-        string passwordHash
+        string password
+        string ownerName
+        string phone
     }
     PRODUCT {
         string id
-        string sellerId
+        string seller
         string name
         number price
         string category
         number stock
         string imageUrl
-        boolean active
+        boolean isActive
     }
     CART {
         string id
-        string customerId
+        string customer
     }
     CART_ITEM {
-        string productId
-        number qty
+        string product
+        number quantity
     }
     ORDER {
         string id
-        string customerId
-        string sellerId
+        string customer
+        string seller
         string status
-        number total
+        number totalPrice
         string shippingAddress
+        string paymentMethod
         date createdAt
     }
     ORDER_ITEM {
-        string productId
+        string product
         string name
-        number unitPrice
-        number qty
+        number price
+        number quantity
     }
 ```
 
@@ -190,67 +180,69 @@ erDiagram
 **customers**
 ```js
 {
-  name:         { type: String, required: true },
-  email:        { type: String, required: true, unique: true, lowercase: true },
-  passwordHash: { type: String, required: true },
-  address:      { type: String },
-  createdAt:    { type: Date, default: Date.now }
+  name:     { type: String, required: true },
+  email:    { type: String, required: true, unique: true, lowercase: true },
+  password: { type: String, required: true }, // bcrypt hash
+  phone:    { type: String },
+  address:  { type: String }
 }
 ```
 
 **sellers**
 ```js
 {
-  storeName:    { type: String, required: true },
-  email:        { type: String, required: true, unique: true, lowercase: true },
-  passwordHash: { type: String, required: true },
-  createdAt:    { type: Date, default: Date.now }
+  storeName: { type: String, required: true },
+  ownerName: { type: String, required: true },
+  email:     { type: String, required: true, unique: true, lowercase: true },
+  password:  { type: String, required: true }, // bcrypt hash
+  phone:     { type: String }
 }
 ```
 
 **products**
 ```js
 {
-  sellerId:   { type: ObjectId, ref: 'Seller', required: true, index: true },
+  seller:     { type: ObjectId, ref: 'Seller', required: true },
   name:       { type: String, required: true },
-  description:{ type: String },
-  price:      { type: Number, required: true, min: 0 },      // IDR
-  category:   { type: String, required: true, index: true },
+  description:{ type: String, required: true },
+  price:      { type: Number, required: true, min: 0 }, // IDR
+  category:   { type: String, required: true },
   stock:      { type: Number, required: true, min: 0 },
-  imageUrl:   { type: String },                              // URL, not uploaded file
-  active:     { type: Boolean, default: true }
+  imageUrl:   { type: String }, // URL, not uploaded file
+  isActive:   { type: Boolean, default: true },
+  images:     [{ type: String }] // legacy records only; normalized to imageUrl on read
 }
 ```
 
 **carts** (one per customer)
 ```js
 {
-  customerId: { type: ObjectId, ref: 'Customer', required: true, unique: true },
-  items: [{ productId: { type: ObjectId, ref: 'Product' }, qty: { type: Number, min: 1 } }]
+  customer: { type: ObjectId, ref: 'Customer', required: true, unique: true },
+  items: [{ product: { type: ObjectId, ref: 'Product' }, quantity: { type: Number, min: 1 } }]
 }
 ```
 
 **orders** — **one order per seller** (a single checkout may create several; line items are snapshotted — BR-6, BR-7)
 ```js
 {
-  customerId: { type: ObjectId, ref: 'Customer', required: true, index: true },
-  sellerId:   { type: ObjectId, ref: 'Seller',   required: true, index: true },  // one seller per order
+  customer: { type: ObjectId, ref: 'Customer', required: true },
+  seller:   { type: ObjectId, ref: 'Seller', required: true, index: true }, // one seller per order
   items: [{
-    productId: { type: ObjectId, ref: 'Product' },
-    name:      String,
-    unitPrice: Number,   // price at time of purchase
-    qty:       Number
+    product:  { type: ObjectId, ref: 'Product' },
+    name:     String,
+    price:    Number, // price at time of purchase
+    quantity: Number
   }],
-  total:           { type: Number, required: true },   // this seller's sub-total
+  totalPrice:      { type: Number, required: true }, // this seller's sub-total
   status:          { type: String, enum: ['PENDING','PAID','PROCESSED','SHIPPED','COMPLETED','CANCELLED'], default: 'PENDING' },
   shippingAddress: { type: String, required: true },
-  createdAt:       { type: Date, default: Date.now }
+  paymentMethod:   { type: String, enum: ['COD','Transfer'], required: true }
 }
 ```
 
-> **Why one order per seller?** An order carries a single `status` that its seller advances (BR-3). If one order spanned multiple sellers, seller A marking it `SHIPPED` would wrongly flip the status for seller B's unshipped items and mislead the customer. So checkout **groups the cart by `sellerId` and creates one order per seller** (BR-7) — the same way Tokopedia splits a checkout into one invoice per store. Each order then has exactly one seller, one clean status, a cheap inbox query (`orders.find({ sellerId: me })`), and its own sub-total.
+> **Why one order per seller?** An order carries a single `status` that its seller advances (BR-3). If one order spanned multiple sellers, seller A marking it `SHIPPED` would wrongly flip the status for seller B's unshipped items and mislead the customer. So checkout **groups the cart by `seller` and creates one order per seller** (BR-7) — the same way Tokopedia splits a checkout into one invoice per store. Each order then has exactly one seller, one clean status, a cheap inbox query (`orders.find({ seller: me })`), and its own sub-total.
 >
-> **Why snapshot `name` and `unitPrice` into each line?** Orders are historical records. If a seller later edits a price or deletes a product, past orders must stay accurate (BR-6).
+> **Why snapshot `name` and `price` into each line?** Orders are historical records. If a seller later edits a price or deletes a product, past orders must stay accurate (BR-6).
 
 ---
 
@@ -286,7 +278,7 @@ Base URL: `/api`. All request/response bodies are JSON. Protected routes require
 | Method | Path | Access | Purpose |
 |--------|------|:------:|---------|
 | GET | `/api/cart` | 🧑 | View current cart |
-| POST | `/api/cart/items` | 🧑 | Add item `{ productId, qty }` (gated — BR-2) |
+| POST | `/api/cart/items` | 🧑 | Add item `{ productId, quantity }` (gated — BR-2) |
 | PUT | `/api/cart/items/:productId` | 🧑 | Update quantity |
 | DELETE | `/api/cart/items/:productId` | 🧑 | Remove line |
 
@@ -299,12 +291,12 @@ Base URL: `/api`. All request/response bodies are JSON. Protected routes require
 | POST | `/api/orders` | 🧑 | Checkout: **group cart by seller → create one order per seller**, decrement stock, empty cart (C6, BR-7). Returns the created order(s). |
 | GET | `/api/orders` | 🧑 | Customer's order history — all their per-seller orders (C7) |
 | GET | `/api/orders/:id` | 🧑 | Customer order detail |
-| GET | `/api/seller/orders` | 🏪 | Seller's orders — `find({ sellerId: me })` (S6) |
+| GET | `/api/seller/orders` | 🏪 | Seller's orders — `find({ seller: me })` (S6) |
 | PUT | `/api/seller/orders/:id/status` | 🏪 | Advance order status per lifecycle (S7, BR-3) |
 
 ### 6.5 Response & error conventions
 
-- **Success:** `2xx` with `{ data }` (or the resource directly).
+- **Success:** `2xx` with `{ success: true, message, data }`.
 - **Validation error:** `400` with `{ error, details: [...] }`.
 - **Auth:** `401` (missing/invalid token) vs `403` (valid token, wrong type/owner).
 - **Not found:** `404`. **Server:** `500` (never leak stack traces to clients).
@@ -332,7 +324,7 @@ flowchart LR
   - `requireCustomer` / `requireSeller` — assert `req.user.type` (enforces BR-1).
   - `requireOwnership` — for product/order writes, assert the resource belongs to `req.user.sub` (enforces BR-4).
 - **Protected routes (Soal 4):** cart, checkout, order history, profile (customer); all product-write and order routes (seller).
-- **Token storage on mobile:** Expo **SecureStore** (preferred) or **AsyncStorage**, so the session survives an app restart (C8-AC3).
+- **Token storage on web:** customer and seller sessions use separate localStorage keys. Future mobile clients should use Expo **SecureStore** (preferred) or **AsyncStorage**.
 
 ---
 
@@ -341,24 +333,24 @@ flowchart LR
 ### 8.1 Customer / Seller Web (React + Vite)
 
 - **Routing (React Router):**
-  - Customer web: `/`, `/products`, `/products/:id`, `/cart` 🔒, `/checkout` 🔒, `/orders` 🔒, `/login`, `/register`.
-  - Seller web: `/login`, `/register`, `/dashboard` 🔒, `/products` 🔒, `/products/new` 🔒, `/products/:id/edit` 🔒, `/orders` 🔒.
+  - Customer routes: `/`, `/products`, `/products/:id`, `/cart` 🔒, `/checkout` 🔒, `/orders` 🔒, `/login`, `/register`.
+  - Seller routes: `/seller/login`, `/seller/register`, `/seller/dashboard` 🔒, `/seller/products` 🔒, `/seller/products/new` 🔒, `/seller/products/:id/edit` 🔒, `/seller/orders` 🔒.
   - 🔒 routes are wrapped in a `<ProtectedRoute>` that checks the token and redirects to login (mirroring the API gate).
 - **State:** lightweight — React Context for auth/session + cart; component/local state elsewhere. (Redux is optional and not required.)
-- **API layer:** a single Axios instance with a base URL from env and a request interceptor that attaches the Bearer token; a response interceptor that redirects to login on `401`.
+- **API layer:** customer and seller Axios clients share the same env-driven base URL while reading separate browser session keys; request interceptors attach the Bearer token and response interceptors handle `401`.
 - **Responsive (Soal 1):** Flexbox/CSS Grid; product grid collapses to a single column on narrow viewports; no fixed pixel-width layouts.
 
-### 8.2 Customer / Seller Mobile (React Native + Expo)
+### 8.2 Future Customer / Seller Mobile (React Native + Expo)
 
 - **Navigation:** React Navigation (stack + tabs).
   - Customer mobile screens: Product List, Product Detail, Login/Register, Order History (+ optional Cart/Checkout).
   - Seller mobile screens: Login/Register, My Products, Add/Edit Product, Orders Inbox, Update Status.
-- **API integration (Soal 3):** same Axios pattern; base URL points at the deployed API.
-- **Token persistence:** SecureStore/AsyncStorage; an auth bootstrap on launch restores the session.
+- **API integration:** reuse the same REST paths and Axios pattern; base URL points at the deployed API.
+- **Token persistence:** use SecureStore/AsyncStorage; an auth bootstrap on launch restores the session.
 
 ### 8.3 Shared client conventions
 
-- Environment-driven API base URL (`VITE_API_URL` / Expo `extra.apiUrl`) — never hard-code the deployed host.
+- Environment-driven API base URL (`VITE_API_URL`; future Expo clients can use `extra.apiUrl`) — never hard-code the deployed host.
 - Explicit **loading / empty / error** states on every data screen.
 - Client-side validation is for UX only; the API is the source of truth.
 
@@ -373,7 +365,7 @@ flowchart LR
 | Input validation | Server-side on every write (express-validator/zod): types, required fields, price/stock ≥ 0, enum status values |
 | AuthZ | Route-level type checks (customer vs seller) + ownership checks (BR-1, BR-4) |
 | Gated cart | Enforced server-side (`401`) independent of UI (BR-2) |
-| CORS | Restrict to the known web origins (customer/seller Vercel domains) |
+| CORS | Restrict to the configured web origins using `CORS_ORIGINS` |
 | Rate limiting | Basic `express-rate-limit` on auth endpoints to blunt brute force |
 | Transport | HTTPS everywhere (provided by Vercel/Render) |
 | Error hygiene | No stack traces or secrets in client-facing error responses |
@@ -385,35 +377,30 @@ flowchart LR
 ```mermaid
 flowchart LR
     subgraph Vercel
-        VW1["web-customer"]
-        VW2["web-seller"]
+        VW["web<br/>unified React + Vite app"]
     end
     R["Render<br/>Express API"]
     A[("MongoDB Atlas")]
-    E["Expo<br/>customer + seller apps<br/>(QR code)"]
 
-    VW1 --> R
-    VW2 --> R
-    E --> R
+    VW --> R
     R --> A
 ```
 
 | Artifact | Platform | Output |
 |----------|----------|--------|
-| Customer Web | Vercel (or Netlify) | Public URL |
-| Seller Web | Vercel (or Netlify) | Public URL |
-| API | Render (or Heroku) | Public HTTPS base URL |
+| Unified Web | Vercel (or Netlify) | Deferred public URL |
+| API | Render (or Heroku) | Deferred public HTTPS base URL |
 | Database | MongoDB Atlas | Connection URI (env) |
-| Mobile (both) | Expo | Shareable **QR code** |
+| Mobile (both) | Expo | Deferred |
 
-- **Env-var promotion:** each deployment target holds its own env vars (API holds `MONGODB_URI`, `JWT_SECRET`; web holds `VITE_API_URL`; mobile holds the API URL via Expo config).
-- **Fallback (per assignment):** if any deployment fails, archive the project (including the built `.apk`) into a `.rar` and submit it — deployment failure affects grading, so keep a working local build as backup.
+- **Env-var promotion:** each deployment target holds its own env vars (API holds `MONGODB_URI`, `JWT_SECRET`; web holds `VITE_API_URL` and optional `VITE_GA_ID`).
+- **Current milestone:** keep the documented local API and web builds working before choosing a public hosting target.
 
 ---
 
 ## 11. Monitoring & Analytics (Soal 5)
 
-- **Google Analytics** (GA4) or **LogRocket** integrated on the **web** clients.
+- **Google Analytics** (GA4) is integrated once on the unified **web** client.
 - Track at minimum: page/route views and a key conversion event (e.g. `add_to_cart`, `checkout_completed`).
 - Keep the measurement id / app id in env vars; disable in local dev to avoid noise.
 
@@ -421,7 +408,7 @@ flowchart LR
 
 ## 12. Local Development Setup
 
-**Prerequisites:** Node.js LTS, npm/pnpm, a MongoDB Atlas URI (or local MongoDB), Expo CLI for mobile.
+**Prerequisites:** Node.js LTS, npm/pnpm, a MongoDB Atlas URI (or local MongoDB).
 
 ```bash
 # 1. API
@@ -430,17 +417,13 @@ cp .env.example .env         # set MONGODB_URI, JWT_SECRET, PORT
 npm install
 npm run dev                  # http://localhost:4000
 
-# 2. Customer / Seller Web (repeat per app)
-cd ../web-customer
+# 2. Unified Customer / Seller Web
+cd ../web
 cp .env.example .env         # set VITE_API_URL=http://localhost:4000/api
 npm install
 npm run dev                  # http://localhost:5173
 
-# 3. Mobile (repeat per app)
-cd ../mobile-customer
-npm install
-# set the API URL in app config (Expo extra.apiUrl)
-npx expo start               # scan QR with Expo Go
+# Native mobile clients are deferred for this milestone.
 ```
 
 ### 12.1 Environment variables
@@ -450,10 +433,10 @@ npx expo start               # scan QR with Expo Go
 | API | `MONGODB_URI` | `mongodb+srv://…` |
 | API | `JWT_SECRET` | `<random-long-string>` |
 | API | `PORT` | `4000` |
-| API | `CORS_ORIGINS` | `https://customer.example.app,https://seller.example.app` |
+| API | `CORS_ORIGINS` | `https://marketplace.example.app` |
 | Web | `VITE_API_URL` | `https://api.example.com/api` |
 | Web | `VITE_GA_ID` / LogRocket id | `G-XXXX` |
-| Mobile | `apiUrl` (Expo `extra`) | `https://api.example.com/api` |
+| Mobile | `apiUrl` (future Expo `extra`) | `https://api.example.com/api` |
 
 ---
 
@@ -463,9 +446,9 @@ npx expo start               # scan QR with Expo Go
 |---------------|-------|--------------------|
 | **Soal 1 (20%)** | Frontend React Web | §8.1 — React Router, `ProtectedRoute`, responsive Flexbox/Grid, home/list/detail/cart/checkout |
 | **Soal 2 (20%)** | Backend Node/Express + MongoDB | §5 data model, §6 REST API, §9 validation — CRUD for products & users with input validation |
-| **Soal 3 (20%)** | Mobile React Native | §8.2 — Expo apps (customer + seller), API integration, JWT stored on device |
+| **Soal 3 (20%)** | Mobile React Native | Deferred milestone; §6 REST contracts remain reusable by future Expo apps |
 | **Soal 4 (20%)** | Data Integration & Auth | §7 JWT auth, protected routes, ownership/type guards; §8.3 Axios/Fetch integration |
-| **Soal 5 (15%)** | Deployment & Monitoring | §10 Vercel + Render + Expo (QR); §11 Google Analytics / LogRocket |
+| **Soal 5 (15%)** | Deployment & Monitoring | §11 Google Analytics is implemented; §10 public deployment is deferred |
 
 ---
 
@@ -474,9 +457,9 @@ npx expo start               # scan QR with Expo Go
 | # | Decision | Default taken |
 |---|----------|---------------|
 | D1 | Pagination strategy for product list | Simple `page`/`limit` query params |
-| D2 | Payment simulation timing | Auto-confirm `PENDING → PAID` at checkout (BR-3) |
+| D2 | Payment simulation timing | Implemented: checkout creates each order as `PAID` because payment is simulated |
 | D3 | State management on web | React Context (no Redux) unless complexity grows |
-| D4 | Multi-seller cart at checkout | Split into **one order per seller** (grouped by `sellerId`); one combined payment, per-seller orders & statuses (BR-7) |
+| D4 | Multi-seller cart at checkout | Split into **one order per seller** (grouped by `seller`); one combined payment, per-seller orders & statuses (BR-7) |
 | D5 | Image handling | `imageUrl` strings only; no upload service |
 
 > These are recorded so they can be revisited without reopening the whole design. Changing one should be a local edit here, not a redesign.
