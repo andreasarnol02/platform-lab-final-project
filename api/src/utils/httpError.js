@@ -4,6 +4,7 @@ const sendServerError = (res, error) => {
   return res.status(500).json({
     success: false,
     message: "Internal server error",
+    data: null,
   });
 };
 
@@ -12,6 +13,7 @@ const sendWriteError = (res, error) => {
     return res.status(400).json({
       success: false,
       message: "A record with those details already exists",
+      data: null,
     });
   }
 

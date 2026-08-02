@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { useCallback, useEffect, useState } from "react";
+import { Link, useLocation } from "react-router";
 import client from "../api/client";
 import MarketplaceIcon from "../components/MarketplaceIcon";
 import StatusBadge from "../components/StatusBadge";
@@ -13,7 +13,9 @@ export default function OrdersPage() {
   const [error, setError] = useState("");
   const [notice] = useState(location.state?.success || "");
 
-  useEffect(() => {
+  const load = useCallback(() => {
+    setLoading(true);
+    setError("");
     client
       .get("/orders")
       .then(({ data }) => setOrders(data.data))
@@ -21,8 +23,12 @@ export default function OrdersPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    load();
+  }, [load]);
+
   if (loading) return <Spinner />;
-  if (error) return <ErrorState message={error} />;
+  if (error) return <ErrorState message={error} onRetry={load} />;
 
   return (
     <div className="orders-page">

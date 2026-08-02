@@ -15,7 +15,8 @@ const protect = (req, res, next) => {
     if (!token) {
         return res.status(401).json({
             success: false,
-            message: "Access denied. Token tidak ditemukan."
+            message: "Access denied. Token tidak ditemukan.",
+            data: null,
         });
     }
 
@@ -30,6 +31,7 @@ const protect = (req, res, next) => {
             return res.status(401).json({
                 success: false,
                 message: "Token tidak valid.",
+                data: null,
             });
         }
 
@@ -40,7 +42,8 @@ const protect = (req, res, next) => {
     } catch (error) {
         return res.status(401).json({
             success: false,
-            message: "Token tidak valid."
+            message: "Token tidak valid.",
+            data: null,
         });
     }
 };

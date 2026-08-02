@@ -33,7 +33,8 @@ const productSchema = new mongoose.Schema(
     imageUrl: {
       type: String,
       trim: true,
-      default: "",
+      required: true,
+      match: /^https?:\/\/\S+$/,
     },
 
     // Kept temporarily so existing local records can be normalized on read.

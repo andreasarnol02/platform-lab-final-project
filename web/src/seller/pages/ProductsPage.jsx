@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useCallback, useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router";
 import client from "../api/client";
 import SellerIcon from "../components/SellerIcon";
 import { Spinner, ErrorState, EmptyState } from "../components/states";
@@ -14,16 +14,19 @@ export default function ProductsPage() {
   const [notice, setNotice] = useState("");
   const navigate = useNavigate();
 
-  const load = () => {
+  const load = useCallback(() => {
     setLoading(true);
+    setError("");
     client
       .get("/seller/products")
       .then(({ data }) => setProducts(data.data))
       .catch(() => setError("Gagal memuat produk."))
       .finally(() => setLoading(false));
-  };
+  }, []);
 
-  useEffect(load, []);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const handleDelete = async (product) => {
     if (!window.confirm(`Hapus produk "${product.name}"?`)) return;
@@ -95,6 +98,7 @@ export default function ProductsPage() {
                     Edit
                   </Link>
                   <button
+                    type="button"
                     className="btn btn-ghost btn-sm text-danger"
                     onClick={() => handleDelete(product)}
                   >
@@ -108,7 +112,7 @@ export default function ProductsPage() {
       )}
 
       <div className="mt-16">
-        <button className="link-more" onClick={() => navigate("/seller/dashboard")}>
+        <button type="button" className="link-more" onClick={() => navigate("/seller/dashboard")}>
           ← Kembali ke dashboard
         </button>
       </div>

@@ -5,20 +5,25 @@ import StatusBadge from "../components/StatusBadge";
 import { Spinner, ErrorState, EmptyState } from "../components/states";
 import { formatIDR, formatDate } from "../utils/format";
 
-const NEXT_STATUS = {
-  PENDING: [
-    { status: "PAID", label: "Tandai Dibayar", tone: "primary" },
-    { status: "CANCELLED", label: "Batalkan", tone: "danger" },
-  ],
-  PAID: [
-    { status: "PROCESSED", label: "Tandai Diproses", tone: "primary" },
-    { status: "CANCELLED", label: "Batalkan", tone: "danger" },
-  ],
-  PROCESSED: [{ status: "SHIPPED", label: "Tandai Dikirim", tone: "primary" }],
-  SHIPPED: [{ status: "COMPLETED", label: "Tandai Selesai", tone: "primary" }],
-  COMPLETED: [],
-  CANCELLED: [],
+const TRANSITION_PRESENTATION = {
+  PAID: { label: "Tandai Dibayar", tone: "primary" },
+  PROCESSED: { label: "Tandai Diproses", tone: "primary" },
+  SHIPPED: { label: "Tandai Dikirim", tone: "primary" },
+  COMPLETED: { label: "Tandai Selesai", tone: "primary" },
+  CANCELLED: { label: "Batalkan", tone: "danger" },
 };
+
+const getTransitionActions = (allowedTransitions) =>
+  (Array.isArray(allowedTransitions) ? allowedTransitions : [])
+    .filter(Boolean)
+    .map((status) => {
+      const normalizedStatus = String(status).toUpperCase();
+      return {
+        status: normalizedStatus,
+        label: TRANSITION_PRESENTATION[normalizedStatus]?.label || normalizedStatus,
+        tone: TRANSITION_PRESENTATION[normalizedStatus]?.tone || "primary",
+      };
+    });
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState([]);
@@ -28,6 +33,7 @@ export default function OrdersPage() {
 
   const load = useCallback(() => {
     setLoading(true);
+    setError("");
     client
       .get("/seller/orders")
       .then(({ data }) => setOrders(data.data))
@@ -82,7 +88,7 @@ export default function OrdersPage() {
       ) : (
         <div className="seller-order-list">
           {orders.map((order) => {
-            const actions = NEXT_STATUS[String(order.status || "").toUpperCase()] || [];
+            const actions = getTransitionActions(order.allowedTransitions);
             return (
               <div className="seller-order" key={order._id}>
                 <div className="seller-order-head">
@@ -127,6 +133,7 @@ export default function OrdersPage() {
                       {actions.map((action) => (
                         <button
                           key={action.status}
+                          type="button"
                           className={`btn btn-sm ${
                             action.tone === "danger"
                               ? "btn-ghost text-danger"

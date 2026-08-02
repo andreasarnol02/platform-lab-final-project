@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link, NavLink, useNavigate } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { Link, NavLink, useNavigate } from "react-router";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
 import MarketplaceIcon from "./MarketplaceIcon";
@@ -9,6 +9,20 @@ export default function Navbar() {
   const { totalCount } = useCart();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
+  const searchInputRef = useRef(null);
+
+  useEffect(() => {
+    const focusSearch = (event) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        searchInputRef.current?.focus();
+        searchInputRef.current?.select();
+      }
+    };
+
+    window.addEventListener("keydown", focusSearch);
+    return () => window.removeEventListener("keydown", focusSearch);
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -39,12 +53,14 @@ export default function Navbar() {
           <MarketplaceIcon name="search" size={20} />
           <input
             type="search"
+            ref={searchInputRef}
             placeholder="Cari laptop, sneakers, kopi..."
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             aria-label="Cari produk"
+            aria-keyshortcuts="Control+K Meta+K"
           />
-          <kbd>Cmd K</kbd>
+          <kbd title="Tekan Cmd atau Ctrl + K untuk mencari">Cmd/Ctrl K</kbd>
         </form>
 
         <div className="navbar-actions commerce-navbar-actions">
@@ -61,7 +77,7 @@ export default function Navbar() {
                 <MarketplaceIcon name="chevron" size={14} />
               </Link>
               <Link to="/orders" className="commerce-order-link">Pesanan</Link>
-              <button className="commerce-logout" onClick={handleLogout}>Keluar</button>
+              <button type="button" className="commerce-logout" onClick={handleLogout}>Keluar</button>
             </div>
           ) : (
             <div className="navbar-user commerce-auth-links">

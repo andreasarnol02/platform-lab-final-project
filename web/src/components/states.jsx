@@ -27,7 +27,7 @@ export function ErrorState({ message, onRetry }) {
       <h3>Terjadi kesalahan</h3>
       <p>{message}</p>
       {onRetry && (
-        <button className="btn btn-primary" onClick={onRetry}>
+        <button type="button" className="btn btn-primary" onClick={onRetry}>
           Coba lagi
         </button>
       )}

@@ -1,5 +1,6 @@
 const Product = require("../models/product");
 const { sendServerError, sendWriteError } = require("../utils/httpError");
+const { isOwner } = require("../utils/ownership");
 
 const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -9,7 +10,7 @@ const productPayload = (body) => ({
     price: body.price,
     stock: body.stock,
     category: body.category,
-    imageUrl: body.imageUrl || "",
+    imageUrl: body.imageUrl || body.images?.[0] || "",
 });
 
 const createProduct = async (req, res) => {
@@ -98,6 +99,7 @@ const getProductById = async (req, res) => {
             return res.status(404).json({
                 success: false,
                 message: "Product not found",
+                data: null,
             });
         }
 
@@ -113,15 +115,21 @@ const getProductById = async (req, res) => {
 
 const getMyProductById = async (req, res) => {
     try {
-        const product = await Product.findOne({
-            _id: req.params.id,
-            seller: req.user.id,
-        }).populate("seller", "storeName ownerName");
+        const product = await Product.findById(req.params.id).populate("seller", "storeName ownerName");
 
         if (!product) {
             return res.status(404).json({
                 success: false,
                 message: "Product not found",
+                data: null,
+            });
+        }
+
+        if (!isOwner(product.seller, req.user.id)) {
+            return res.status(403).json({
+                success: false,
+                message: "You are not allowed to access this product",
+                data: null,
             });
         }
 
@@ -137,15 +145,21 @@ const getMyProductById = async (req, res) => {
 
 const updateProduct = async (req, res) => {
     try {
-        const product = await Product.findOne({
-            _id: req.params.id,
-            seller: req.user.id,
-        });
+        const product = await Product.findById(req.params.id);
 
         if (!product) {
             return res.status(404).json({
                 success: false,
                 message: "Product not found",
+                data: null,
+            });
+        }
+
+        if (!isOwner(product.seller, req.user.id)) {
+            return res.status(403).json({
+                success: false,
+                message: "You are not allowed to update this product",
+                data: null,
             });
         }
 
@@ -167,24 +181,32 @@ const updateProduct = async (req, res) => {
 
 const deleteProduct = async (req, res) => {
     try {
-        const product = await Product.findOne({
-            _id: req.params.id,
-            seller: req.user.id,
-        });
+        const product = await Product.findById(req.params.id);
 
         if (!product) {
             return res.status(404).json({
                 success: false,
                 message: "Product not found",
+                data: null,
+            });
+        }
+
+        if (!isOwner(product.seller, req.user.id)) {
+            return res.status(403).json({
+                success: false,
+                message: "You are not allowed to delete this product",
+                data: null,
             });
         }
 
         product.isActive = false;
-        await product.save();
+        // Deactivation must remain possible for legacy records without imageUrl.
+        await product.save({ validateBeforeSave: false });
 
         return res.status(200).json({
             success: true,
             message: "Product deactivated successfully",
+            data: product,
         });
     } catch (error) {
         return sendWriteError(res, error);

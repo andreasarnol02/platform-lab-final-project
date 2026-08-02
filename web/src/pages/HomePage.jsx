@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useCallback, useEffect, useState } from "react";
+import { Link } from "react-router";
 import client from "../api/client";
 import CategoryRow from "../components/CategoryRow";
 import MarketplaceIcon from "../components/MarketplaceIcon";
@@ -14,7 +14,9 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  useEffect(() => {
+  const load = useCallback(() => {
+    setLoading(true);
+    setError("");
     client
       .get("/products")
       .then(({ data }) => setProducts(data.data))
@@ -22,8 +24,12 @@ export default function HomePage() {
       .finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    load();
+  }, [load]);
+
   if (loading) return <Spinner />;
-  if (error) return <ErrorState message={error} onRetry={() => window.location.reload()} />;
+  if (error) return <ErrorState message={error} onRetry={load} />;
 
   const featured = products.slice(0, 8);
   const heroProduct = products[0];
@@ -85,10 +91,10 @@ export default function HomePage() {
         </section>
       )}
 
-      <section className="commerce-trust-row">
-        <div><span className="commerce-trust-icon"><MarketplaceIcon name="store" size={19} /></span><span><strong>Berbagai toko</strong><small>Lihat penjual di setiap produk</small></span></div>
-        <div><span className="commerce-trust-icon"><MarketplaceIcon name="tag" size={19} /></span><span><strong>Harga dalam IDR</strong><small>Harga tampil dalam rupiah</small></span></div>
-        <div><span className="commerce-trust-icon"><MarketplaceIcon name="package" size={19} /></span><span><strong>Pesanan per toko</strong><small>Checkout dipisah berdasarkan penjual</small></span></div>
+      <section className="commerce-info-row">
+        <div><span className="commerce-info-icon"><MarketplaceIcon name="store" size={19} /></span><span><strong>Berbagai toko</strong><small>Lihat penjual di setiap produk</small></span></div>
+        <div><span className="commerce-info-icon"><MarketplaceIcon name="tag" size={19} /></span><span><strong>Harga dalam IDR</strong><small>Harga tampil dalam rupiah</small></span></div>
+        <div><span className="commerce-info-icon"><MarketplaceIcon name="package" size={19} /></span><span><strong>Pesanan per toko</strong><small>Checkout dipisah berdasarkan penjual</small></span></div>
       </section>
     </div>
   );

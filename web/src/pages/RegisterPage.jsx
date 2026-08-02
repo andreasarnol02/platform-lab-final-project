@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router";
 import { useAuth } from "../context/AuthContext";
 
 export default function RegisterPage() {
@@ -106,7 +106,7 @@ export default function RegisterPage() {
           />
         </label>
 
-        <button className="btn btn-primary btn-block" disabled={submitting}>
+        <button type="submit" className="btn btn-primary btn-block" disabled={submitting}>
           {submitting ? "Memproses..." : "Daftar"}
         </button>
 

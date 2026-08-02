@@ -4,17 +4,24 @@ import { useAuth } from "./AuthContext";
 
 const CartContext = createContext(null);
 
+const getCartErrorMessage = (error, fallback) =>
+  error?.response?.data?.message || fallback;
+
 export function CartProvider({ children }) {
   const { token } = useAuth();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const refresh = useCallback(async () => {
     if (!token) {
       setItems([]);
+      setError("");
+      setLoading(false);
       return;
     }
     setLoading(true);
+    setError("");
     try {
       const { data } = await client.get("/cart");
       const cart = data.data?.items || [];
@@ -24,8 +31,9 @@ export function CartProvider({ children }) {
           quantity: item.quantity,
         }))
       );
-    } catch {
-      setItems([]);
+    } catch (requestError) {
+      // Keep the last successful cart visible while the user retries.
+      setError(getCartErrorMessage(requestError, "Gagal memuat keranjang."));
     } finally {
       setLoading(false);
     }
@@ -37,29 +45,47 @@ export function CartProvider({ children }) {
 
   const addItem = useCallback(
     async (productId, quantity = 1) => {
-      await client.post("/cart/items", { productId, quantity });
-      await refresh();
+      try {
+        await client.post("/cart/items", { productId, quantity });
+        await refresh();
+      } catch (requestError) {
+        setError(getCartErrorMessage(requestError, "Gagal memperbarui keranjang."));
+        throw requestError;
+      }
     },
     [refresh]
   );
 
   const updateQuantity = useCallback(
     async (productId, quantity) => {
-      await client.put(`/cart/items/${productId}`, { quantity });
-      await refresh();
+      try {
+        await client.put(`/cart/items/${productId}`, { quantity });
+        await refresh();
+      } catch (requestError) {
+        setError(getCartErrorMessage(requestError, "Gagal memperbarui keranjang."));
+        throw requestError;
+      }
     },
     [refresh]
   );
 
   const removeItem = useCallback(
     async (productId) => {
-      await client.delete(`/cart/items/${productId}`);
-      await refresh();
+      try {
+        await client.delete(`/cart/items/${productId}`);
+        await refresh();
+      } catch (requestError) {
+        setError(getCartErrorMessage(requestError, "Gagal memperbarui keranjang."));
+        throw requestError;
+      }
     },
     [refresh]
   );
 
-  const clearLocal = useCallback(() => setItems([]), []);
+  const clearLocal = useCallback(() => {
+    setItems([]);
+    setError("");
+  }, []);
 
   const totalCount = items.reduce((sum, item) => sum + item.quantity, 0);
   const totalPrice = items.reduce(
@@ -70,6 +96,7 @@ export function CartProvider({ children }) {
   const value = {
     items,
     loading,
+    error,
     totalCount,
     totalPrice,
     addItem,

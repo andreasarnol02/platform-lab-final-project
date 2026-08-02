@@ -1,4 +1,4 @@
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { NavLink, Outlet, useNavigate } from "react-router";
 import { useAuth } from "../context/AuthContext";
 import SellerIcon from "./SellerIcon";
 
@@ -48,7 +48,7 @@ export default function Layout() {
             <span>{user?.ownerName}</span>
             <small>{user?.email}</small>
           </div>
-          <button className="btn btn-ghost btn-sm btn-block sidebar-logout" onClick={handleLogout}>
+          <button type="button" className="btn btn-ghost btn-sm btn-block sidebar-logout" onClick={handleLogout}>
             <SellerIcon name="logout" size={16} />
             Keluar
           </button>

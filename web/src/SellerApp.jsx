@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router";
 import ProtectedRoute from "./seller/components/ProtectedRoute";
 import Layout from "./seller/components/Layout";
 import LoginPage from "./seller/pages/LoginPage";

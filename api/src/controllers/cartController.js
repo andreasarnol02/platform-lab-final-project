@@ -14,7 +14,8 @@ const addToCart = async (req, res) => {
         if (!product || !product.isActive) {
             return res.status(404).json({
                 success: false,
-                message: "Product not found"
+                message: "Product not found",
+                data: null,
             });
         }
 
@@ -29,6 +30,7 @@ const addToCart = async (req, res) => {
                 return res.status(400).json({
                     success: false,
                     message: `Stok tidak cukup untuk "${product.name}" (tersisa ${product.stock})`,
+                    data: null,
                 });
             }
 
@@ -58,6 +60,7 @@ const addToCart = async (req, res) => {
                     return res.status(400).json({
                         success: false,
                         message: `Stok tidak cukup untuk "${product.name}" (tersisa ${product.stock})`,
+                        data: null,
                     });
                 }
 
@@ -69,6 +72,7 @@ const addToCart = async (req, res) => {
                     return res.status(400).json({
                         success: false,
                         message: `Stok tidak cukup untuk "${product.name}" (tersisa ${product.stock})`,
+                        data: null,
                     });
                 }
 
@@ -140,7 +144,8 @@ const updateCartItem = async (req, res) => {
         if (quantity < 1) {
             return res.status(400).json({
                 success: false,
-                message: "Quantity must be at least 1"
+                message: "Quantity must be at least 1",
+                data: null,
             });
         }
 
@@ -151,7 +156,8 @@ const updateCartItem = async (req, res) => {
         if (!cart) {
             return res.status(404).json({
                 success: false,
-                message: "Cart not found"
+                message: "Cart not found",
+                data: null,
             });
         }
 
@@ -162,7 +168,8 @@ const updateCartItem = async (req, res) => {
         if (!item) {
             return res.status(404).json({
                 success: false,
-                message: "Product not found in cart"
+                message: "Product not found in cart",
+                data: null,
             });
         }
 
@@ -171,6 +178,7 @@ const updateCartItem = async (req, res) => {
             return res.status(404).json({
                 success: false,
                 message: "Product not found",
+                data: null,
             });
         }
 
@@ -178,6 +186,7 @@ const updateCartItem = async (req, res) => {
             return res.status(400).json({
                 success: false,
                 message: `Stok tidak cukup untuk "${product.name}" (tersisa ${product.stock})`,
+                data: null,
             });
         }
 
@@ -211,7 +220,8 @@ const removeCartItem = async (req, res) => {
         if (!cart) {
             return res.status(404).json({
                 success: false,
-                message: "Cart not found"
+                message: "Cart not found",
+                data: null,
             });
         }
 
@@ -224,6 +234,7 @@ const removeCartItem = async (req, res) => {
             return res.status(404).json({
                 success: false,
                 message: "Product not found in cart",
+                data: null,
             });
         }
 

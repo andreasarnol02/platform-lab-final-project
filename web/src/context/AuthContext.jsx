@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import client, { getSession, saveSession, clearSession } from "../api/client";
 
 const AuthContext = createContext(null);

@@ -1,0 +1,15 @@
+{
+  "name": "marketplace-workspace",
+  "private": true,
+  "engines": {
+    "node": ">=22.22.0"
+  },
+  "scripts": {
+    "dev": "concurrently --kill-others-on-fail --names api,web --prefix-colors blue,green \"npm --prefix api run dev\" \"npm --prefix web run dev\"",
+    "test": "npm --prefix api test -- --runInBand && npm --prefix web test -- --runInBand",
+    "build": "npm --prefix web run build"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

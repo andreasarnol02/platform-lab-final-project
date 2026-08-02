@@ -7,6 +7,7 @@ const validate = (req, res, next) => {
     return res.status(400).json({
       success: false,
       error: "Validation failed",
+      data: null,
       details: result.array().map(({ path, msg }) => ({
         field: path,
         message: msg,

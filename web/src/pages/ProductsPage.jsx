@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "react-router";
 import client from "../api/client";
 import MarketplaceIcon from "../components/MarketplaceIcon";
 import ProductCard from "../components/ProductCard";
@@ -16,7 +16,7 @@ export default function ProductsPage() {
   const search = searchParams.get("search") || "";
   const category = searchParams.get("category") || "";
 
-  useEffect(() => {
+  const load = useCallback(() => {
     setLoading(true);
     setError("");
     client
@@ -28,6 +28,10 @@ export default function ProductsPage() {
       .catch(() => setError("Gagal memuat produk."))
       .finally(() => setLoading(false));
   }, [search, category]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const categories = CATEGORIES.map(({ label }) => label);
 
@@ -46,7 +50,7 @@ export default function ProductsPage() {
         <div>
           <span className="commerce-eyebrow"><MarketplaceIcon name="grid" size={14} /> KATALOG MARKETPLACE</span>
           <h1>Temukan yang kamu suka</h1>
-          <p>Produk pilihan dari toko lokal terpercaya.</p>
+          <p>Jelajahi produk dari berbagai toko.</p>
         </div>
            {!loading && <span className="commerce-result-count">{pagination?.total ?? products.length} produk</span>}
       </div>
@@ -68,6 +72,7 @@ export default function ProductsPage() {
         <aside className="filter-side">
           <h3>Kategori</h3>
           <button
+            type="button"
             className={`filter-chip ${category === "" ? "active" : ""}`}
             onClick={() => setParam("category", "")}
           >
@@ -76,6 +81,7 @@ export default function ProductsPage() {
           {categories.map((cat) => (
             <button
               key={cat}
+              type="button"
               className={`filter-chip ${category === cat ? "active" : ""}`}
               onClick={() => setParam("category", cat)}
             >
@@ -88,7 +94,7 @@ export default function ProductsPage() {
           {loading ? (
             <Spinner />
           ) : error ? (
-            <ErrorState message={error} onRetry={() => window.location.reload()} />
+            <ErrorState message={error} onRetry={load} />
           ) : products.length === 0 ? (
             <EmptyState
               icon={<MarketplaceIcon name="search" size={30} />}

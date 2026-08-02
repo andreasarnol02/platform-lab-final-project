@@ -1,4 +1,8 @@
 import "@testing-library/jest-dom";
+import { TextDecoder, TextEncoder } from "util";
+
+global.TextDecoder = TextDecoder;
+global.TextEncoder = TextEncoder;
 
 Object.defineProperty(window, "matchMedia", {
   writable: true,

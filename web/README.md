@@ -4,7 +4,7 @@ The unified React web application for both marketplace roles. It runs on one Vit
 
 ## Requirements
 
-- Node.js LTS
+- Node.js 22.22.0 or newer
 - The shared API running from `../api`
 
 ## Local Setup
@@ -16,6 +16,17 @@ npm run dev
 ```
 
 The web application runs at `http://localhost:5173`.
+
+From the repository root, install the workspace runner and start both services with one command:
+
+```bash
+npm install
+npm --prefix api install
+npm --prefix web install
+npm run dev
+```
+
+This starts Nodemon for the API and Vite for the web application. Stop both processes with `Ctrl+C`.
 
 Start the API separately:
 

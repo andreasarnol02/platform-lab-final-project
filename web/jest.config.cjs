@@ -1,8 +1,11 @@
 module.exports = {
   testEnvironment: "jsdom",
   transform: {
-    "^.+\\.[jt]sx?$": "babel-jest",
+    "^.+\\.[cm]?[jt]sx?$": "babel-jest",
   },
+  transformIgnorePatterns: [
+    "/node_modules/(?!react-router|cookie-es/)",
+  ],
   setupFilesAfterEnv: ["<rootDir>/src/test/setup.js"],
   testPathIgnorePatterns: ["<rootDir>/e2e/"],
 };

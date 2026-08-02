@@ -72,7 +72,7 @@ sequenceDiagram
 
 | Layer | Technology | Notes |
 |-------|------------|-------|
-| Customer/Seller Web | **React 18 + React Router**, built with **Vite** | Responsive via Flexbox / CSS Grid |
+| Customer/Seller Web | **React 19 + React Router 8**, built with **Vite** | Responsive via Flexbox / CSS Grid |
 | Mobile (both sides) | React Native + Expo | Deferred; future clients will reuse the API |
 | HTTP client | **Axios** (Fetch acceptable) | Shared request/interceptor pattern |
 | Backend | **Node.js + Express.js** | RESTful API |
@@ -84,7 +84,7 @@ sequenceDiagram
 | Deploy — Mobile | Expo (EAS) | Deferred |
 | Monitoring | **Google Analytics** or **LogRocket** | On web clients |
 
-> The stack is fixed to match the graded Lab modules. Choose **one** option where alternatives are listed (e.g. Vercel *or* Netlify) and use it consistently.
+> The stack is fixed to match the graded Lab modules. Choose **one** option where alternatives are listed (e.g. Vercel *or* Netlify) and use it consistently. The web client uses React Router 8's declarative APIs imported from `react-router`.
 
 ---
 
@@ -208,7 +208,7 @@ erDiagram
   price:      { type: Number, required: true, min: 0 }, // IDR
   category:   { type: String, required: true },
   stock:      { type: Number, required: true, min: 0 },
-  imageUrl:   { type: String }, // URL, not uploaded file
+  imageUrl:   { type: String, required: true }, // HTTP(S) URL, not uploaded file
   isActive:   { type: Boolean, default: true },
   images:     [{ type: String }] // legacy records only; normalized to imageUrl on read
 }
@@ -288,7 +288,7 @@ Base URL: `/api`. All request/response bodies are JSON. Protected routes require
 
 | Method | Path | Access | Purpose |
 |--------|------|:------:|---------|
-| POST | `/api/orders` | 🧑 | Checkout: **group cart by seller → create one order per seller**, decrement stock, empty cart (C6, BR-7). Returns the created order(s). |
+| POST | `/api/orders` | 🧑 | Checkout: **group cart by seller → create one order per seller**, atomically decrement stock and empty cart in a MongoDB transaction (C6, BR-7). Returns the created order(s). |
 | GET | `/api/orders` | 🧑 | Customer's order history — all their per-seller orders (C7) |
 | GET | `/api/orders/:id` | 🧑 | Customer order detail |
 | GET | `/api/seller/orders` | 🏪 | Seller's orders — `find({ seller: me })` (S6) |
@@ -300,6 +300,7 @@ Base URL: `/api`. All request/response bodies are JSON. Protected routes require
 - **Validation error:** `400` with `{ error, details: [...] }`.
 - **Auth:** `401` (missing/invalid token) vs `403` (valid token, wrong type/owner).
 - **Not found:** `404`. **Server:** `500` (never leak stack traces to clients).
+- Seller order responses include `allowedTransitions`, calculated by the API from the order lifecycle; clients must not infer allowed status changes locally.
 
 ---
 
@@ -408,7 +409,7 @@ flowchart LR
 
 ## 12. Local Development Setup
 
-**Prerequisites:** Node.js LTS, npm/pnpm, a MongoDB Atlas URI (or local MongoDB).
+**Prerequisites:** Node.js 22.22.0 or newer, npm/pnpm, and a MongoDB Atlas URI or local MongoDB replica set. Checkout transactions require transaction-capable MongoDB.
 
 ```bash
 # 1. API
@@ -422,6 +423,12 @@ cd ../web
 cp .env.example .env         # set VITE_API_URL=http://localhost:4000/api
 npm install
 npm run dev                  # http://localhost:5173
+
+# Or, from the repository root after installing each app's dependencies:
+# npm install
+# npm --prefix api install
+# npm --prefix web install
+# npm run dev                  # starts API and web together
 
 # Native mobile clients are deferred for this milestone.
 ```
