@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { formatIDR } from "../utils/format";
 import MarketplaceIcon from "./MarketplaceIcon";
 import ProductImage from "./ProductImage";

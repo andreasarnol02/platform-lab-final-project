@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useCallback, useEffect, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router";
 import client from "../api/client";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
@@ -24,14 +24,19 @@ export default function ProductDetailPage() {
   const [adding, setAdding] = useState(false);
   const [notice, setNotice] = useState(null);
 
-  useEffect(() => {
+  const load = useCallback(() => {
     setLoading(true);
+    setError("");
     client
       .get(`/products/${id}`)
       .then(({ data }) => setProduct(data.data))
       .catch(() => setError("Produk tidak ditemukan."))
       .finally(() => setLoading(false));
   }, [id]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const handleAddToCart = async () => {
     if (!user) {
@@ -63,7 +68,7 @@ export default function ProductDetailPage() {
   };
 
   if (loading) return <Spinner />;
-  if (error) return <ErrorState message={error} />;
+  if (error) return <ErrorState message={error} onRetry={load} />;
 
   const image = getProductImage(product);
   const outOfStock = product.stock <= 0;
@@ -117,17 +122,29 @@ export default function ProductDetailPage() {
         {!outOfStock && (
           <div className="detail-buy">
             <span className="commerce-quantity-label">Jumlah</span>
-            <div className="qty-control">
+            <div className="qty-control" role="group" aria-label={`Jumlah ${product.name}`}>
               <button
                 type="button"
+                aria-label={`Kurangi jumlah ${product.name}`}
                 onClick={() => setQuantity((q) => Math.max(1, q - 1))}
                 disabled={quantity <= 1}
               >
                 −
               </button>
-              <span>{quantity}</span>
+              <span
+                role="spinbutton"
+                aria-label={`Jumlah ${quantity}`}
+                aria-live="polite"
+                aria-atomic="true"
+                aria-valuemin={1}
+                aria-valuemax={product.stock}
+                aria-valuenow={quantity}
+              >
+                {quantity}
+              </span>
               <button
                 type="button"
+                aria-label={`Tambah jumlah ${product.name}`}
                 onClick={() => setQuantity((q) => Math.min(product.stock, q + 1))}
                 disabled={quantity >= product.stock}
               >
@@ -136,6 +153,7 @@ export default function ProductDetailPage() {
             </div>
 
             <button
+              type="button"
               className="btn btn-primary btn-lg commerce-detail-cta"
               onClick={handleAddToCart}
               disabled={adding}
@@ -152,9 +170,9 @@ export default function ProductDetailPage() {
           <div><span>Penjual</span><strong>{product.seller?.ownerName || "Seller marketplace"}</strong></div>
         </div>
 
-        <div className="commerce-assurance-row">
-          <span><MarketplaceIcon name="shield" size={16} /> Pembayaran aman</span>
-          <span><MarketplaceIcon name="store" size={16} /> Stok real-time</span>
+        <div className="commerce-facts-row">
+          <span><MarketplaceIcon name="shield" size={16} /> Transfer bank atau COD</span>
+          <span><MarketplaceIcon name="store" size={16} /> Ketersediaan dari data produk</span>
         </div>
 
         {!user && (

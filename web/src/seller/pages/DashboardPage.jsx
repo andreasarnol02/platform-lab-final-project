@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import client from "../api/client";
 import StatusBadge from "../components/StatusBadge";
 import SellerIcon from "../components/SellerIcon";
@@ -38,9 +38,10 @@ export default function DashboardPage() {
   }, [load]);
 
   if (loading) return <Spinner />;
-  if (error) return <ErrorState message={error} />;
+  if (error) return <ErrorState message={error} onRetry={load} />;
 
-  const outOfStock = products.filter((p) => p.stock <= 0).length;
+  const listedProducts = products.filter((product) => product.isActive);
+  const outOfStock = listedProducts.filter((product) => product.stock <= 0).length;
   const activeRevenue = orders
     .filter((o) => String(o.status || "").toUpperCase() !== "CANCELLED")
     .reduce((sum, o) => sum + o.totalPrice, 0);
@@ -49,7 +50,7 @@ export default function DashboardPage() {
   ).length;
 
   const stats = [
-    { label: "Produk Terdaftar", value: products.length, icon: "products" },
+    { label: "Produk Terdaftar", value: listedProducts.length, icon: "products" },
     { label: "Stok Habis", value: outOfStock, icon: "warning" },
     { label: "Total Pesanan", value: orders.length, icon: "orders" },
     { label: "Pesanan Menunggu", value: pendingCount, icon: "clock" },

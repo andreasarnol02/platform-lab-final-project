@@ -29,6 +29,7 @@ const registerCustomer = async (req, res) => {
             return res.status(400).json({
                 success: false,
                 message: "Email already registered",
+                data: null,
             });
         }
 
@@ -60,6 +61,7 @@ const loginCustomer = async (req, res) => {
             return res.status(401).json({
                 success: false,
                 message: "Email atau password salah",
+                data: null,
             });
         }
 
@@ -83,6 +85,7 @@ const registerSeller = async (req, res) => {
             return res.status(400).json({
                 success: false,
                 message: "Email already registered",
+                data: null,
             });
         }
 
@@ -114,6 +117,7 @@ const loginSeller = async (req, res) => {
             return res.status(401).json({
                 success: false,
                 message: "Email atau password salah",
+                data: null,
             });
         }
 
@@ -137,6 +141,7 @@ const getCurrentUser = async (req, res) => {
             return res.status(404).json({
                 success: false,
                 message: "User not found",
+                data: null,
             });
         }
 

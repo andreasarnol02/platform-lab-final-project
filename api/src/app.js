@@ -9,7 +9,7 @@ const orderRoutes = require("./routes/orderRoutes");
 const sellerRoutes = require("./routes/sellerRoutes");
 
 // Middleware
-const allowedOrigins = (process.env.CORS_ORIGINS || "http://localhost:5173")
+const allowedOrigins = (process.env.CORS_ORIGINS || "http://localhost:5173,http://127.0.0.1:5173")
     .split(",")
     .map((origin) => origin.trim())
     .filter(Boolean);
@@ -35,7 +35,16 @@ app.use("/api/seller", sellerRoutes);
 app.get("/", (req, res) => {
     res.json({
         success: true,
-        message: "Marketplace API is running 🚀"
+        message: "Marketplace API is running 🚀",
+        data: { status: "ok" },
+    });
+});
+
+app.use((req, res) => {
+    res.status(404).json({
+        success: false,
+        message: "Route not found",
+        data: null,
     });
 });
 
@@ -44,6 +53,7 @@ app.use((error, req, res, next) => {
     res.status(500).json({
         success: false,
         message: "Internal server error",
+        data: null,
     });
 });
 

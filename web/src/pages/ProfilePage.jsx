@@ -26,7 +26,7 @@ export default function ProfilePage() {
             <strong>{user.address || "—"}</strong>
           </div>
         </div>
-        <button className="btn btn-outline-danger" onClick={logout}>
+        <button type="button" className="btn btn-outline-danger" onClick={logout}>
           Keluar dari Akun
         </button>
       </div>

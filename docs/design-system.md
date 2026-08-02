@@ -172,7 +172,7 @@ Status must be readable by text and never rely on color alone.
 
 - Reduce page gutters and hero copy padding.
 - Collapse seller dashboard secondary panels before the main content.
-- Keep product grids at two to four columns based on available width.
+- Keep product grids at two to four columns on tablet and desktop widths; collapse to one column on narrow phone widths.
 
 ### Mobile, 760px and below
 

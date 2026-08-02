@@ -1,88 +1,86 @@
+const mongoose = require("mongoose");
 const Cart = require("../models/cart");
 const Order = require("../models/order");
 const Product = require("../models/product");
 const { sendServerError, sendWriteError } = require("../utils/httpError");
-const { ORDER_TRANSITIONS, normalizeOrderStatus } = require("../utils/orderStatus");
+const {
+    SELLER_ORDER_TRANSITIONS,
+    normalizeOrderStatus,
+} = require("../utils/orderStatus");
+const { isOwner } = require("../utils/ownership");
 
-const restoreStock = async (reserved) => {
-    await Promise.all(
-        reserved.map(({ productId, quantity }) =>
-            Product.findByIdAndUpdate(productId, {
-                $inc: { stock: quantity },
-            })
-        )
-    );
-};
-
-const deleteCreatedOrders = async (orders) => {
-    const ids = orders.map((order) => order._id).filter(Boolean);
-    if (ids.length > 0) {
-        await Order.deleteMany({ _id: { $in: ids } });
+class CheckoutError extends Error {
+    constructor(message) {
+        super(message);
+        this.statusCode = 400;
     }
+}
+
+const orderWithAllowedTransitions = (order) => {
+    const data = typeof order?.toJSON === "function" ? order.toJSON() : order;
+    const status = normalizeOrderStatus(data.status);
+
+    return {
+        ...data,
+        status,
+        allowedTransitions: SELLER_ORDER_TRANSITIONS[status] || [],
+    };
 };
+
+const sendCheckoutError = (res, error) => res.status(error.statusCode).json({
+    success: false,
+    message: error.message,
+    data: null,
+});
 
 const checkout = async (req, res) => {
-    const reserved = [];
-    const createdOrders = [];
+    let session;
+    let createdOrders = [];
 
     try {
         const { shippingAddress, paymentMethod } = req.body;
-        const cart = await Cart.findOne({ customer: req.user.id }).populate("items.product");
+        session = await mongoose.startSession();
 
-        if (!cart || cart.items.length === 0) {
-            return res.status(400).json({
-                success: false,
-                message: "Cart is empty",
-            });
-        }
+        await session.withTransaction(async () => {
+            const cart = await Cart.findOne({ customer: req.user.id })
+                .session(session)
+                .populate("items.product");
 
-        const groups = new Map();
-
-        for (const item of cart.items) {
-            if (!item.product || !item.product.isActive) {
-                return res.status(400).json({
-                    success: false,
-                    message: "One of the products is no longer available",
-                });
+            if (!cart || cart.items.length === 0) {
+                throw new CheckoutError("Cart is empty");
             }
 
-            const sellerId = item.product.seller.toString();
-            if (!groups.has(sellerId)) {
-                groups.set(sellerId, []);
-            }
-            groups.get(sellerId).push(item);
-        }
+            const groups = new Map();
 
-        // Reserve stock atomically so concurrent checkouts cannot oversell.
-        for (const item of cart.items) {
-            const product = await Product.findOneAndUpdate(
-                {
-                    _id: item.product._id,
-                    isActive: true,
-                    stock: { $gte: item.quantity },
-                },
-                { $inc: { stock: -item.quantity } },
-                { new: true }
-            );
+            for (const item of cart.items) {
+                if (!item.product || !item.product.isActive) {
+                    throw new CheckoutError("One of the products is no longer available");
+                }
 
-            if (!product) {
-                await restoreStock(reserved);
-                return res.status(400).json({
-                    success: false,
-                    message: `Stok tidak cukup untuk "${item.product.name}"`,
-                });
+                const sellerId = item.product.seller.toString();
+                if (!groups.has(sellerId)) {
+                    groups.set(sellerId, []);
+                }
+                groups.get(sellerId).push(item);
             }
 
-            reserved.push({ productId: item.product._id, quantity: item.quantity });
-        }
+            for (const item of cart.items) {
+                const product = await Product.findOneAndUpdate(
+                    {
+                        _id: item.product._id,
+                        isActive: true,
+                        stock: { $gte: item.quantity },
+                    },
+                    { $inc: { stock: -item.quantity } },
+                    { new: true, session }
+                );
 
-        for (const [sellerId, items] of groups) {
-            const totalPrice = items.reduce(
-                (total, item) => total + item.product.price * item.quantity,
-                0
-            );
+                if (!product) {
+                    throw new CheckoutError(`Stok tidak cukup untuk "${item.product.name}"`);
+                }
+            }
 
-            const order = await Order.create({
+            const orderPayloads = [...groups].map(([sellerId, items]) => ({
                 customer: req.user.id,
                 seller: sellerId,
                 items: items.map((item) => ({
@@ -91,18 +89,20 @@ const checkout = async (req, res) => {
                     quantity: item.quantity,
                     price: item.product.price,
                 })),
-                totalPrice,
+                totalPrice: items.reduce(
+                    (total, item) => total + item.product.price * item.quantity,
+                    0
+                ),
                 shippingAddress,
                 paymentMethod,
                 // Payment is simulated, so checkout immediately confirms the order.
                 status: "PAID",
-            });
+            }));
 
-            createdOrders.push(order);
-        }
-
-        cart.items = [];
-        await cart.save();
+            createdOrders = await Order.create(orderPayloads, { session });
+            cart.items = [];
+            await cart.save({ session });
+        });
 
         return res.status(201).json({
             success: true,
@@ -110,14 +110,19 @@ const checkout = async (req, res) => {
             data: createdOrders,
         });
     } catch (error) {
-        try {
-            await restoreStock(reserved);
-            await deleteCreatedOrders(createdOrders);
-        } catch (rollbackError) {
-            console.error(rollbackError);
+        if (error instanceof CheckoutError) {
+            return sendCheckoutError(res, error);
         }
 
         return sendServerError(res, error);
+    } finally {
+        if (session) {
+            try {
+                await session.endSession();
+            } catch (error) {
+                console.error(error);
+            }
+        }
     }
 };
 
@@ -139,15 +144,21 @@ const getMyOrders = async (req, res) => {
 
 const getOrderById = async (req, res) => {
     try {
-        const order = await Order.findOne({
-            _id: req.params.id,
-            customer: req.user.id,
-        }).populate("items.product");
+        const order = await Order.findById(req.params.id).populate("items.product");
 
         if (!order) {
             return res.status(404).json({
                 success: false,
                 message: "Order not found",
+                data: null,
+            });
+        }
+
+        if (!isOwner(order.customer, req.user.id)) {
+            return res.status(403).json({
+                success: false,
+                message: "You are not allowed to access this order",
+                data: null,
             });
         }
 
@@ -171,7 +182,7 @@ const getSellerOrders = async (req, res) => {
         return res.status(200).json({
             success: true,
             message: "Orders fetched successfully",
-            data: orders,
+            data: orders.map(orderWithAllowedTransitions),
         });
     } catch (error) {
         return sendServerError(res, error);
@@ -180,26 +191,33 @@ const getSellerOrders = async (req, res) => {
 
 const updateOrderStatus = async (req, res) => {
     try {
-        const order = await Order.findOne({
-            _id: req.params.id,
-            seller: req.user.id,
-        });
+        const order = await Order.findById(req.params.id);
 
         if (!order) {
             return res.status(404).json({
                 success: false,
                 message: "Order not found",
+                data: null,
+            });
+        }
+
+        if (!isOwner(order.seller, req.user.id)) {
+            return res.status(403).json({
+                success: false,
+                message: "You are not allowed to update this order",
+                data: null,
             });
         }
 
         const currentStatus = normalizeOrderStatus(order.status);
         const nextStatus = normalizeOrderStatus(req.body.status);
-        const validStatuses = ORDER_TRANSITIONS[currentStatus] || [];
+        const validStatuses = SELLER_ORDER_TRANSITIONS[currentStatus] || [];
 
         if (!validStatuses.includes(nextStatus)) {
             return res.status(400).json({
                 success: false,
                 message: `Status cannot change from "${currentStatus}" to "${nextStatus}"`,
+                data: null,
             });
         }
 
@@ -209,7 +227,7 @@ const updateOrderStatus = async (req, res) => {
         return res.status(200).json({
             success: true,
             message: "Order status updated successfully",
-            data: order,
+            data: orderWithAllowedTransitions(order),
         });
     } catch (error) {
         return sendWriteError(res, error);

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import client from "../api/client";
 import { useCart } from "../context/CartContext";
 import MarketplaceIcon from "../components/MarketplaceIcon";
@@ -23,7 +23,7 @@ export default function CheckoutPage() {
         <div className="state-icon"><MarketplaceIcon name="bag" size={32} /></div>
         <h3>Keranjang kosong</h3>
         <p>Tidak ada item untuk di-checkout.</p>
-        <button className="btn btn-primary" onClick={() => navigate("/products")}>
+        <button type="button" className="btn btn-primary" onClick={() => navigate("/products")}>
           Mulai Belanja
         </button>
       </div>
@@ -110,7 +110,7 @@ export default function CheckoutPage() {
           </div>
         </div>
 
-        <button className="btn btn-primary btn-block btn-lg" disabled={submitting}>
+        <button type="submit" className="btn btn-primary btn-block btn-lg" disabled={submitting}>
           {submitting
             ? "Memproses pesanan..."
             : `Bayar ${formatIDR(totalPrice)}`}

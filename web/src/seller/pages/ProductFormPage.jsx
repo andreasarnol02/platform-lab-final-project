@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router";
 import client from "../api/client";
 import { Spinner } from "../components/states";
 import ProductImage from "../../components/ProductImage";
@@ -168,15 +168,17 @@ export default function ProductFormPage() {
         </label>
 
         <label className="field">
-          <span>URL Gambar <small>(opsional)</small></span>
+          <span>URL Gambar *</span>
           <input
             type="url"
             name="imageUrl"
+            required
+            aria-describedby="image-url-help"
             placeholder="https://contoh.com/foto-produk.jpg"
             value={form.imageUrl}
             onChange={handleChange}
           />
-          <em className="field-help">Masukkan URL langsung ke file gambar. Upload file belum tersedia.</em>
+          <em id="image-url-help" className="field-help">Wajib diisi dengan URL publik langsung ke file gambar produk. Upload file belum tersedia.</em>
         </label>
 
         {form.imageUrl && (
@@ -193,7 +195,7 @@ export default function ProductFormPage() {
           >
             Batal
           </button>
-          <button className="btn btn-primary" disabled={submitting}>
+          <button type="submit" className="btn btn-primary" disabled={submitting}>
             {submitting ? "Menyimpan..." : isEdit ? "Simpan Perubahan" : "Terbitkan Produk"}
           </button>
         </div>

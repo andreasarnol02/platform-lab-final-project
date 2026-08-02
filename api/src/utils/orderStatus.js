@@ -27,8 +27,14 @@ const ORDER_TRANSITIONS = {
   CANCELLED: [],
 };
 
+const SELLER_ORDER_TRANSITIONS = {
+  ...ORDER_TRANSITIONS,
+  PENDING: ["CANCELLED"],
+};
+
 module.exports = {
   ORDER_STATUSES,
   ORDER_TRANSITIONS,
+  SELLER_ORDER_TRANSITIONS,
   normalizeOrderStatus,
 };
