@@ -5,7 +5,7 @@
 |---|---|
 | **Course** | Specialized Platform Development |
 | **Deliverable** | Tugas Kelompok Project Lab — Week 10 |
-| **Document** | Product Requirements (Customer site + Seller site) |
+| **Document** | Product Requirements (Unified web marketplace) |
 | **Companion** | `technical-requirements.md` |
 | **Status** | Draft for review |
 | **Date** | 2026-08-01 |
@@ -14,14 +14,14 @@
 
 ## 1. Overview & Vision
 
-We are building an **online marketplace** modelled on [Tokopedia](https://www.tokopedia.com): a platform where independent **sellers** list products and **customers** browse, add to cart, and check out. The product is delivered as **web and mobile applications** backed by a single cloud-hosted REST API.
+We are building an **online marketplace** modelled on [Tokopedia](https://www.tokopedia.com): a platform where independent **sellers** list products and **customers** browse, add to cart, and check out. The current deliverable is one responsive web application backed by a single REST API; native mobile clients and public deployment remain future work.
 
 The marketplace is **two-sided**:
 
 - **Customer side** — a storefront for discovering and buying products.
 - **Seller side** — a merchant dashboard for listing products and fulfilling orders.
 
-Both sides ship on **web and mobile**. Customers and sellers hold **separate accounts** with separate registration and login flows.
+Both sides share the web application through separate route namespaces and account sessions. Customers and sellers hold **separate accounts** with separate registration and login flows.
 
 > **Guiding constraint:** everything in this document must be buildable within the Lab Module 1–5 skill set (React, Node/Express, MongoDB, React Native/Expo, JWT, cloud deployment). We deliberately keep the feature set lean so it can be built, deployed, and demonstrated end-to-end.
 
@@ -34,8 +34,8 @@ Both sides ship on **web and mobile**. Customers and sellers hold **separate acc
 | G1 | A customer can go from landing to placed order | Guest → register → browse → add to cart → checkout → order visible in history |
 | G2 | A seller can stock the marketplace and fulfil demand | Seller → register → add product → product appears in storefront → order arrives → status updated |
 | G3 | Add-to-cart is gated behind authentication | A logged-out user cannot add to cart on **any** client, and the API rejects the attempt |
-| G4 | One backend serves all four clients | Customer-web, customer-mobile, seller-web, seller-mobile all consume the same API |
-| G5 | The whole system is publicly reachable | Live web URL, live API URL, and an Expo QR code for mobile |
+| G4 | One backend serves both marketplace roles | The unified web app consumes the shared API for customer and seller workflows |
+| G5 | Keep future delivery deployable | The current local web/API build is documented; public deployment and mobile artifacts are deferred |
 
 ---
 
@@ -54,16 +54,18 @@ Both sides ship on **web and mobile**. Customers and sellers hold **separate acc
 ## 4. Scope
 
 ### 4.1 In scope
-- Customer storefront (web + mobile): browse, search, cart, checkout, order history.
-- Seller dashboard (web + mobile): product CRUD, order management, sales overview.
+- Customer storefront (responsive web): browse, search, cart, checkout, order history.
+- Seller dashboard (responsive web): product CRUD, order management, sales overview.
 - Separate customer/seller authentication (register, login, protected areas).
 - Gated add-to-cart and checkout (authentication required).
 - A **simulated** checkout that creates an order record (no real money movement).
-- Public cloud deployment + basic monitoring/analytics.
+- Basic web monitoring/analytics.
 
 ### 4.2 Out of scope (explicitly)
 - **Real payment gateway** integration (Midtrans/Stripe/etc.). Checkout is simulated — it creates an order in a `PENDING`/`PAID` state without charging a card.
 - Product **image upload/storage service** — product images are referenced by **URL**.
+- Native mobile applications (React Native/Expo) are deferred beyond the current web milestone.
+- Public deployment is deferred until the local web/API flows are complete.
 - Ratings, reviews, chat/messaging, wishlists, promotions/vouchers.
 - Shipping-cost calculation and courier integration (a flat/placeholder value may be shown).
 - Admin/superuser role and moderation tooling.
@@ -75,23 +77,21 @@ Both sides ship on **web and mobile**. Customers and sellers hold **separate acc
 
 ## 5. Customer Site — Product Requirements
 
-Platforms: **Web** (React) + **Mobile** (React Native/Expo). The mobile app implements the browse/detail/auth core; the web app implements the full flow.
+Platform: **Web** (React + Vite). A future mobile client can consume the same API but is not part of this milestone.
 
 ### 5.1 Feature list
 
-| ID | Feature | Web | Mobile | Auth required |
-|----|---------|:---:|:------:|:-------------:|
-| C1 | Home / Beranda (featured + entry to catalog) | ✅ | ✅ | No |
-| C2 | Product list with search & category filter | ✅ | ✅ | No |
-| C3 | Product detail | ✅ | ✅ | No |
-| C4 | **Add to cart (gated)** | ✅ | ✅ | **Yes** |
-| C5 | Cart view (update quantity, remove) | ✅ | ➖ optional | Yes |
-| C6 | Checkout (simulated) → creates order | ✅ | ➖ optional | Yes |
-| C7 | Order history & order detail | ✅ | ✅ | Yes |
-| C8 | Customer register / login (JWT) | ✅ | ✅ | — |
-| C9 | Profile (view basic info, logout) | ✅ | ✅ | Yes |
-
-`➖ optional` = required on web for the full flow; on mobile it is a stretch goal if time allows (the graded mobile requirement is browse + detail + authenticated experience).
+| ID | Feature | Web | Auth required |
+|----|---------|:---:|:-------------:|
+| C1 | Home / Beranda (featured + entry to catalog) | ✅ | No |
+| C2 | Product list with search & category filter | ✅ | No |
+| C3 | Product detail | ✅ | No |
+| C4 | **Add to cart (gated)** | ✅ | **Yes** |
+| C5 | Cart view (update quantity, remove) | ✅ | Yes |
+| C6 | Checkout (simulated) → creates order | ✅ | Yes |
+| C7 | Order history & order detail | ✅ | Yes |
+| C8 | Customer register / login (JWT) | ✅ | — |
+| C9 | Profile (view basic info, logout) | ✅ | Yes |
 
 ### 5.2 Key user stories & acceptance criteria
 
@@ -113,7 +113,7 @@ Platforms: **Web** (React) + **Mobile** (React Native/Expo). The mobile app impl
 > As a customer, I want to place an order for the items in my cart.
 - **AC1:** Only reachable when authenticated **and** the cart is non-empty.
 - **AC2:** Submitting groups the cart by seller and creates **one order per seller** (BR-7), each capturing that seller's line items, quantities, unit prices, and sub-total; the cart is then emptied.
-- **AC3:** The new order(s) appear immediately in the customer's order history with status `PENDING` (auto-confirmed to `PAID` by the simulated payment — see BR-3).
+- **AC3:** The new order(s) appear immediately in the customer's order history with status `PAID`; the simulated payment confirms the order during checkout (see BR-3).
 - **AC4:** Product **stock** is decremented for each ordered line.
 
 **C7 — Order history**
@@ -131,20 +131,20 @@ Platforms: **Web** (React) + **Mobile** (React Native/Expo). The mobile app impl
 
 ## 6. Seller Site — Product Requirements
 
-Platforms: **Web** (React seller dashboard) + **Mobile** (React Native/Expo seller app). Sellers hold **separate accounts** from customers.
+Platform: **Web** (React + Vite seller dashboard). Sellers hold **separate accounts** from customers.
 
 ### 6.1 Feature list
 
-| ID | Feature | Web | Mobile | Auth required |
-|----|---------|:---:|:------:|:-------------:|
-| S1 | Seller register / login (JWT, separate flow) | ✅ | ✅ | — |
-| S2 | Product management — create | ✅ | ✅ | Yes (seller) |
-| S3 | Product management — edit / update stock | ✅ | ✅ | Yes (seller) |
-| S4 | Product management — delete / deactivate | ✅ | ➖ optional | Yes (seller) |
-| S5 | My products list | ✅ | ✅ | Yes (seller) |
-| S6 | Incoming orders inbox | ✅ | ✅ | Yes (seller) |
-| S7 | Update order status (fulfilment) | ✅ | ✅ | Yes (seller) |
-| S8 | Sales dashboard (counts & totals) | ✅ | ➖ optional | Yes (seller) |
+| ID | Feature | Web | Auth required |
+|----|---------|:---:|:-------------:|
+| S1 | Seller register / login (JWT, separate flow) | ✅ | — |
+| S2 | Product management — create | ✅ | Yes (seller) |
+| S3 | Product management — edit / update stock | ✅ | Yes (seller) |
+| S4 | Product management — delete / deactivate | ✅ | Yes (seller) |
+| S5 | My products list | ✅ | Yes (seller) |
+| S6 | Incoming orders inbox | ✅ | Yes (seller) |
+| S7 | Update order status (fulfilment) | ✅ | Yes (seller) |
+| S8 | Sales dashboard (counts & totals) | ✅ | Yes (seller) |
 
 ### 6.2 Key user stories & acceptance criteria
 
@@ -174,7 +174,7 @@ Platforms: **Web** (React seller dashboard) + **Mobile** (React Native/Expo sell
 |----|------|
 | **BR-1** | Customer and seller accounts are separate namespaces. A token issued for one type must not grant access to the other type's protected resources. |
 | **BR-2** | **Gated cart:** add-to-cart, view-cart, and checkout require a valid **customer** token. The gate is enforced at the API layer (`401` on missing/invalid token), with the UI redirecting to login as a convenience — never as the only barrier. |
-| **BR-3** | **Order lifecycle:** `PENDING → PAID → PROCESSED → SHIPPED → COMPLETED`, with `CANCELLED` reachable from `PENDING`/`PAID`. Payment is simulated: on checkout each per-seller order (BR-7) is created as `PENDING` and auto-confirmed to `PAID`. The owning seller advances `PAID → PROCESSED → SHIPPED → COMPLETED`. |
+| **BR-3** | **Order lifecycle:** `PENDING → PAID → PROCESSED → SHIPPED → COMPLETED`, with `CANCELLED` reachable from `PENDING`/`PAID`. Payment is simulated: checkout confirms each per-seller order (BR-7) as `PAID` immediately, representing the `PENDING → PAID` step. The owning seller advances `PAID → PROCESSED → SHIPPED → COMPLETED`. |
 | **BR-4** | **Ownership:** a seller may read/update/delete only products they own and may view/advance only their own orders. |
 | **BR-5** | **Stock:** checkout decrements stock; an order line cannot exceed available stock at time of checkout. |
 | **BR-6** | **Pricing snapshot:** an order stores the unit price at time of purchase, so later price edits by the seller do not change historical orders. |
@@ -186,12 +186,12 @@ Platforms: **Web** (React seller dashboard) + **Mobile** (React Native/Expo sell
 
 | Category | Requirement |
 |----------|-------------|
-| **Responsiveness** | Web layouts use Flexbox/CSS Grid and adapt from mobile (~360px) to desktop (~1280px+). |
+| **Responsiveness** | The web layout uses Flexbox/CSS Grid and adapts from mobile (~360px) to desktop (~1280px+). |
 | **Usability** | Consistent navigation; clear empty/loading/error states; primary actions reachable in ≤ 3 taps. |
 | **Performance** | Product list first render within a couple of seconds on a normal connection; paginate or cap list size to keep payloads reasonable. |
 | **Security** | Passwords hashed; secrets in environment variables; protected routes enforced server-side; input validated (see TRD §9). |
-| **Availability** | Web, API, and mobile artifact publicly reachable via deployment links + Expo QR. |
-| **Maintainability** | Clear separation between the four clients and the shared API; documented setup. |
+| **Availability** | The local web/API flow is runnable from the documented setup; public deployment and mobile artifacts are deferred. |
+| **Maintainability** | Customer and seller route surfaces remain separated inside one web app, backed by the shared API. |
 | **Observability** | Basic analytics/monitoring wired on the web client (Google Analytics or LogRocket). |
 
 ---
@@ -214,9 +214,9 @@ This marketplace is designed so each graded component maps to concrete features 
 |---------------|-------|-----------|
 | **Soal 1 (20%)** | Frontend React Web | C1–C6 customer web (home, list, detail, cart, checkout) + React Router + responsive Flexbox/Grid |
 | **Soal 2 (20%)** | Backend Node/Express + MongoDB | The shared API: product & user (customer/seller) management, CRUD + validation (see TRD §6) |
-| **Soal 3 (20%)** | Mobile React Native | C2/C3/C7/C8 customer mobile (product list & detail, API integration, JWT stored on device) + seller mobile (S1/S2/S5/S6/S7) |
+| **Soal 3 (20%)** | Mobile React Native | Deferred mobile milestone; the shared REST contracts are documented for future customer and seller clients |
 | **Soal 4 (20%)** | Data Integration & Authentication | C8/S1 JWT auth, BR-1/BR-2 protected & gated routes, Axios/Fetch API integration |
-| **Soal 5 (15%)** | Deployment & Monitoring | Non-functional §8: Vercel/Netlify (web), Render/Heroku (API), Expo (mobile), Google Analytics/LogRocket |
+| **Soal 5 (15%)** | Deployment & Monitoring | Web analytics is implemented; public web/API deployment and Expo delivery remain deferred |
 
 ---
 

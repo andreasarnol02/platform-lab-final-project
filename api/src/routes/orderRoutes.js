@@ -4,22 +4,26 @@ const router = express.Router();
 
 const protect = require("../middleware/authMiddleware");
 const customerOnly = require("../middleware/customerMiddleware");
+const validate = require("../middleware/validation");
 
 const {
     checkout,
     getMyOrders,
     getOrderById
 } = require("../controllers/orderController");
+const { checkout: checkoutValidator, mongoId } = require("./validators");
 
 router.post(
-  "/checkout",
+  "/",
   protect,
   customerOnly,
+  checkoutValidator,
+  validate,
   checkout
 );
 
 router.get(
-  "/my-orders",
+  "/",
   protect,
   customerOnly,
   getMyOrders
@@ -29,6 +33,8 @@ router.get(
   "/:id",
   protect,
   customerOnly,
+  mongoId("id"),
+  validate,
   getOrderById
 );
 

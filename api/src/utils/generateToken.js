@@ -1,11 +1,11 @@
 const jwt = require("jsonwebtoken");
 
-const generateToken = (id, role) => {
+const generateToken = (id, type) => {
     return jwt.sign(
-        { id, role },
+        { sub: id.toString(), type },
         process.env.JWT_SECRET,
         {
-            expiresIn: process.env.JWT_EXPIRES,
+            expiresIn: process.env.JWT_EXPIRES || "7d",
         }
     );
 };

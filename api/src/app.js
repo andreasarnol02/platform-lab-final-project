@@ -6,21 +6,44 @@ const authRoutes = require("./routes/authRoutes");
 const app = express();
 const cartRoutes = require("./routes/cartRoutes");
 const orderRoutes = require("./routes/orderRoutes");
+const sellerRoutes = require("./routes/sellerRoutes");
 
 // Middleware
-app.use(cors());
+const allowedOrigins = (process.env.CORS_ORIGINS || "http://localhost:5173")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
+app.use(cors({
+    origin(origin, callback) {
+        if (!origin || allowedOrigins.includes(origin)) {
+            return callback(null, true);
+        }
+
+        return callback(null, false);
+    },
+}));
 app.use(express.json());
 app.use(morgan("dev"));
-app.use("/api/carts", cartRoutes);
+app.use("/api/cart", cartRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/orders", orderRoutes);
+app.use("/api/seller", sellerRoutes);
 
 // Test Route
 app.get("/", (req, res) => {
     res.json({
         success: true,
         message: "Marketplace API is running 🚀"
+    });
+});
+
+app.use((error, req, res, next) => {
+    console.error(error);
+    res.status(500).json({
+        success: false,
+        message: "Internal server error",
     });
 });
 

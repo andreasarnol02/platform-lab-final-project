@@ -1,197 +1,202 @@
 const Product = require("../models/product");
+const { sendServerError, sendWriteError } = require("../utils/httpError");
 
-// Create Product
+const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+const productPayload = (body) => ({
+    name: body.name,
+    description: body.description,
+    price: body.price,
+    stock: body.stock,
+    category: body.category,
+    imageUrl: body.imageUrl || "",
+});
+
 const createProduct = async (req, res) => {
     try {
-
-        const {
-            name,
-            description,
-            price,
-            stock,
-            category,
-            images
-        } = req.body;
-
         const product = await Product.create({
-
-            name,
-            description,
-            price,
-            stock,
-            category,
-            images,
-
-            seller: req.user.id
-
+            ...productPayload(req.body),
+            seller: req.user.id,
         });
 
-        res.status(201).json({
-
+        return res.status(201).json({
             success: true,
             message: "Product created successfully",
-
-            data: product
-
+            data: product,
         });
-
     } catch (error) {
-
-        res.status(500).json({
-
-            success: false,
-            message: error.message
-
-        });
-
+        return sendWriteError(res, error);
     }
 };
-
-//Get Products
 
 const getProducts = async (req, res) => {
     try {
+        const page = Number(req.query.page || 1);
+        const limit = Number(req.query.limit || 24);
+        const filter = { isActive: true };
 
-        const products = await Product.find({ isActive: true })
-            .populate("seller", "storeName ownerName");
+        if (req.query.search) {
+            filter.name = {
+                $regex: escapeRegex(req.query.search.trim()),
+                $options: "i",
+            };
+        }
 
-        res.status(200).json({
+        if (req.query.category) {
+            filter.category = req.query.category.trim();
+        }
+
+        const [products, total] = await Promise.all([
+            Product.find(filter)
+                .populate("seller", "storeName ownerName")
+                .sort({ createdAt: -1 })
+                .skip((page - 1) * limit)
+                .limit(limit),
+            Product.countDocuments(filter),
+        ]);
+
+        return res.status(200).json({
             success: true,
             message: "Products fetched successfully",
-            data: products
+            data: products,
+            pagination: {
+                page,
+                limit,
+                total,
+                pages: Math.ceil(total / limit),
+            },
         });
-
     } catch (error) {
-
-        res.status(500).json({
-            success: false,
-            message: error.message
-        });
-
+        return sendServerError(res, error);
     }
 };
 
-// Get Product by ID
+const getMyProducts = async (req, res) => {
+    try {
+        const products = await Product.find({ seller: req.user.id })
+            .populate("seller", "storeName ownerName")
+            .sort({ createdAt: -1 });
+
+        return res.status(200).json({
+            success: true,
+            message: "Products fetched successfully",
+            data: products,
+        });
+    } catch (error) {
+        return sendServerError(res, error);
+    }
+};
+
 const getProductById = async (req, res) => {
     try {
-
-        const product = await Product.findById(req.params.id)
-            .populate("seller", "storeName ownerName email phone");
+        const product = await Product.findOne({
+            _id: req.params.id,
+            isActive: true,
+        }).populate("seller", "storeName ownerName");
 
         if (!product) {
             return res.status(404).json({
                 success: false,
-                message: "Product not found"
+                message: "Product not found",
             });
         }
 
-        res.status(200).json({
+        return res.status(200).json({
             success: true,
             message: "Product fetched successfully",
-            data: product
+            data: product,
         });
-
     } catch (error) {
-
-        res.status(500).json({
-            success: false,
-            message: error.message
-        });
-
+        return sendServerError(res, error);
     }
 };
 
-//update product
+const getMyProductById = async (req, res) => {
+    try {
+        const product = await Product.findOne({
+            _id: req.params.id,
+            seller: req.user.id,
+        }).populate("seller", "storeName ownerName");
+
+        if (!product) {
+            return res.status(404).json({
+                success: false,
+                message: "Product not found",
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: "Product fetched successfully",
+            data: product,
+        });
+    } catch (error) {
+        return sendServerError(res, error);
+    }
+};
+
 const updateProduct = async (req, res) => {
     try {
-
-        const product = await Product.findById(req.params.id);
+        const product = await Product.findOne({
+            _id: req.params.id,
+            seller: req.user.id,
+        });
 
         if (!product) {
             return res.status(404).json({
                 success: false,
-                message: "Product not found"
+                message: "Product not found",
             });
         }
 
-        // Pastikan hanya seller pemilik yang boleh update
-        if (product.seller.toString() !== req.user.id) {
-            return res.status(403).json({
-                success: false,
-                message: "You are not allowed to update this product"
-            });
-        }
+        Object.assign(product, productPayload({
+            ...product.toObject(),
+            ...req.body,
+        }));
+        await product.save();
 
-        const updatedProduct = await Product.findByIdAndUpdate(
-            req.params.id,
-            req.body,
-            {
-                new: true,
-                runValidators: true
-            }
-        );
-
-        res.status(200).json({
+        return res.status(200).json({
             success: true,
             message: "Product updated successfully",
-            data: updatedProduct
+            data: product,
         });
-
     } catch (error) {
-
-        res.status(500).json({
-            success: false,
-            message: error.message
-        });
-
+        return sendWriteError(res, error);
     }
 };
 
-// Delete Product
 const deleteProduct = async (req, res) => {
     try {
-
-        const product = await Product.findById(req.params.id);
+        const product = await Product.findOne({
+            _id: req.params.id,
+            seller: req.user.id,
+        });
 
         if (!product) {
             return res.status(404).json({
                 success: false,
-                message: "Product not found"
+                message: "Product not found",
             });
         }
 
-        // Pastikan hanya seller pemilik yang bisa menghapus
-        if (product.seller.toString() !== req.user.id) {
-            return res.status(403).json({
-                success: false,
-                message: "You are not allowed to delete this product"
-            });
-        }
+        product.isActive = false;
+        await product.save();
 
-        await product.deleteOne();
-
-        res.status(200).json({
+        return res.status(200).json({
             success: true,
-            message: "Product deleted successfully"
+            message: "Product deactivated successfully",
         });
-
     } catch (error) {
-
-        res.status(500).json({
-            success: false,
-            message: error.message
-        });
-
+        return sendWriteError(res, error);
     }
 };
 
-
 module.exports = {
-
     createProduct,
     getProducts,
+    getMyProducts,
     getProductById,
+    getMyProductById,
     updateProduct,
-    deleteProduct
+    deleteProduct,
 };
-    
