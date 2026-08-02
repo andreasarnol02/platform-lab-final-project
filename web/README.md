@@ -1,13 +1,13 @@
 # Marketplace Web
 
-The unified React web application for both marketplace roles. It runs on one Vite server and keeps customer and seller experiences separate through route namespaces and role-specific JWT sessions.
+Aplikasi web React terpadu untuk kedua peran marketplace. Aplikasi ini berjalan di satu server Vite dan memisahkan pengalaman pelanggan dan penjual melalui namespace rute dan sesi JWT khusus peran.
 
-## Requirements
+## Persyaratan
 
-- Node.js 22.22.0 or newer
-- The shared API running from `../api`
+- Node.js 22.22.0 atau lebih baru
+- API bersama yang berjalan dari `../api`
 
-## Local Setup
+## Penyiapan Lokal
 
 ```bash
 npm install
@@ -15,9 +15,9 @@ cp .env.example .env
 npm run dev
 ```
 
-The web application runs at `http://localhost:5173`.
+Aplikasi web berjalan di `http://localhost:5173`.
 
-From the repository root, install the workspace runner and start both services with one command:
+Dari root repositori, instal runner workspace dan jalankan kedua layanan dengan satu perintah:
 
 ```bash
 npm install
@@ -26,9 +26,9 @@ npm --prefix web install
 npm run dev
 ```
 
-This starts Nodemon for the API and Vite for the web application. Stop both processes with `Ctrl+C`.
+Ini menjalankan Nodemon untuk API dan Vite untuk aplikasi web. Hentikan kedua proses dengan `Ctrl+C`.
 
-Start the API separately:
+Jalankan API secara terpisah:
 
 ```bash
 cd ../api
@@ -36,91 +36,91 @@ npm install
 npm run dev
 ```
 
-## Environment
+## Lingkungan
 
-| Variable | Default | Purpose |
+| Variabel | Bawaan | Kegunaan |
 | --- | --- | --- |
-| `VITE_API_URL` | `http://localhost:4000/api` | Shared API base URL |
-| `VITE_GA_ID` | empty | Optional Google Analytics 4 measurement ID |
+| `VITE_API_URL` | `http://localhost:4000/api` | URL dasar API bersama |
+| `VITE_GA_ID` | kosong | ID pengukuran Google Analytics 4 opsional |
 
-Analytics is disabled when `VITE_GA_ID` is empty. Vite exposes environment variables at build time; do not place secrets in this file.
+Analitik dinonaktifkan saat `VITE_GA_ID` kosong. Vite memaparkan variabel lingkungan saat build; jangan menaruh rahasia di file ini.
 
-## Available Scripts
+## Skrip yang Tersedia
 
-| Command | Purpose |
+| Perintah | Tujuan |
 | --- | --- |
-| `npm run dev` | Start the unified Vite development server |
-| `npm run build` | Create a production build |
-| `npm run preview` | Preview the production build locally |
-| `npm test` | Run frontend unit and integration tests |
-| `npm run test:watch` | Run Jest in watch mode |
-| `npm run test:e2e` | Run Playwright browser tests against the configured app |
+| `npm run dev` | Jalankan server pengembangan Vite terpadu |
+| `npm run build` | Buat build produksi |
+| `npm run preview` | Pratinjau build produksi secara lokal |
+| `npm test` | Jalankan pengujian unit dan integrasi frontend |
+| `npm run test:watch` | Jalankan Jest dalam mode watch |
+| `npm run test:e2e` | Jalankan pengujian browser Playwright terhadap aplikasi yang dikonfigurasi |
 
-## Customer Routes
+## Rute Pelanggan
 
-- `/` - storefront home
-- `/products` - product catalog with search and category filters
-- `/products/:id` - product detail
-- `/cart` - authenticated customer cart
-- `/checkout` - authenticated simulated checkout
-- `/orders` - authenticated order history
-- `/orders/:id` - authenticated order detail
-- `/profile` - authenticated customer profile
-- `/login` and `/register` - customer authentication
+- `/` - beranda toko
+- `/products` - katalog produk dengan pencarian dan filter kategori
+- `/products/:id` - detail produk
+- `/cart` - keranjang pelanggan terautentikasi
+- `/checkout` - checkout simulasi terautentikasi
+- `/orders` - riwayat pesanan terautentikasi
+- `/orders/:id` - detail pesanan terautentikasi
+- `/profile` - profil pelanggan terautentikasi
+- `/login` dan `/register` - autentikasi pelanggan
 
-## Seller Routes
+## Rute Penjual
 
-- `/seller/login` and `/seller/register` - seller authentication
-- `/seller/dashboard` - product, order, stock, and revenue overview
-- `/seller/products` - products owned by the authenticated seller
-- `/seller/products/new` - create a product
-- `/seller/products/:id/edit` - edit an owned product
-- `/seller/orders` - incoming orders for the authenticated seller
+- `/seller/login` dan `/seller/register` - autentikasi penjual
+- `/seller/dashboard` - ringkasan produk, pesanan, stok, dan pendapatan
+- `/seller/products` - produk milik penjual yang telah terautentikasi
+- `/seller/products/new` - membuat produk
+- `/seller/products/:id/edit` - mengedit produk milik sendiri
+- `/seller/orders` - pesanan masuk untuk penjual yang telah terautentikasi
 
-## Authentication and Ownership
+## Autentikasi dan Kepemilikan
 
-- Customer sessions use `mp_customer_session`.
-- Seller sessions use `mp_seller_session`.
-- The browser only controls presentation; the API enforces token type and ownership.
-- A customer and seller may use the same email because they are separate account namespaces.
-- A seller only receives orders created for products owned by that seller.
+- Sesi pelanggan menggunakan `mp_customer_session`.
+- Sesi penjual menggunakan `mp_seller_session`.
+- Browser hanya mengendalikan presentasi; API menegakkan jenis token dan kepemilikan.
+- Pelanggan dan penjual dapat menggunakan email yang sama karena keduanya berada dalam namespace akun yang terpisah.
+- Penjual hanya menerima pesanan yang dibuat untuk produk milik penjual tersebut.
 
-## Product Images and Prices
+## Gambar dan Harga Produk
 
-- Product images use one direct `imageUrl` string.
-- The API validates image URLs and the UI shows a placeholder when the URL is absent or cannot load.
-- File upload is intentionally deferred until an object-storage service such as S3 or Cloudinary is selected.
-- Seller prices are entered with Indonesian dot grouping, for example `7.777.777.777`, then sent to the API as the numeric value `7777777777`.
+- Gambar produk menggunakan satu string `imageUrl` langsung.
+- API memvalidasi URL gambar dan UI menampilkan placeholder saat URL tidak ada atau tidak dapat dimuat.
+- Unggah file sengaja ditunda sampai layanan penyimpanan objek seperti S3 atau Cloudinary dipilih.
+- Harga penjual dimasukkan dengan pengelompokan titik Indonesia, misalnya `7.777.777.777`, lalu dikirim ke API sebagai nilai numerik `7777777777`.
 
 ## Checkout
 
-- A cart containing products from multiple sellers creates one order per seller.
-- The customer sees all seller-specific invoices in order history.
-- The checkout is simulated; no real payment is processed.
+- Keranjang yang berisi produk dari beberapa penjual membuat satu pesanan per penjual.
+- Pelanggan melihat semua faktur khusus penjual dalam riwayat pesanan.
+- Checkout bersifat simulasi; tidak ada pembayaran nyata yang diproses.
 
-## Test Layers
+## Lapisan Pengujian
 
-- Jest unit tests cover formatting, utilities, and isolated components.
-- Jest plus React Testing Library cover frontend interactions and API calls at the component boundary.
-- Playwright covers browser-level navigation and protected route behavior.
+- Pengujian unit Jest mencakup pemformatan, utilitas, dan komponen terisolasi.
+- Jest dan React Testing Library mencakup interaksi frontend serta pemanggilan API pada batas komponen.
+- Playwright mencakup navigasi tingkat browser dan perilaku rute yang dilindungi.
 
-E2E tests start the Vite server automatically and mock the public product response, so they do not require MongoDB or the API. Set `E2E_BASE_URL` when testing a deployed web URL.
+Pengujian E2E memulai server Vite secara otomatis dan melakukan mock terhadap respons produk publik, sehingga tidak memerlukan MongoDB atau API. Atur `E2E_BASE_URL` saat menguji URL web yang telah di-deploy.
 
-## Continuous Integration
+## Integrasi Berkelanjutan
 
-`.github/workflows/ci.yml` runs API tests, frontend tests and build, Playwright browser tests, high-severity dependency audits, CodeQL analysis, and a verified-secret scan on pushes and pull requests.
+`.github/workflows/ci.yml` menjalankan pengujian API, pengujian frontend dan build, pengujian browser Playwright, audit dependensi dengan tingkat keparahan tinggi, analisis CodeQL, dan pemindaian verified-secret pada push dan pull request.
 
-## Project Structure
+## Struktur Proyek
 
 ```text
 src/
-├── api/          Axios client and session helpers
-├── components/   Customer UI, icons, states, and shared components
-├── context/      Customer authentication and cart state
-├── pages/        Customer routes
-├── seller/       Seller UI, pages, API client, auth, and styles
-├── styles/       Customer design tokens and responsive styles
-└── utils/        Formatting and analytics helpers
+├── api/          Klien Axios dan helper sesi
+├── components/   UI pelanggan, ikon, state, dan komponen bersama
+├── context/      Autentikasi pelanggan dan state keranjang
+├── pages/        Rute pelanggan
+├── seller/       UI penjual, halaman, klien API, auth, dan style
+├── styles/       Token desain pelanggan dan style responsif
+└── utils/        Helper pemformatan dan analitik
 ```
 
-The shared visual contract is documented in `../docs/design-system.md`.
+Kontrak visual bersama didokumentasikan dalam `../docs/design-system.md`.

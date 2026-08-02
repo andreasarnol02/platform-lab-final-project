@@ -1,15 +1,15 @@
 # Marketplace API
 
-The shared Node.js and Express API for customer and seller marketplace flows.
+API Node.js dan Express bersama untuk alur marketplace pelanggan dan penjual.
 
-## Requirements
+## Persyaratan
 
-- Node.js 22.22.0 or newer
-- MongoDB running locally or a MongoDB deployment with transaction support
+- Node.js 22.22.0 atau lebih baru
+- MongoDB yang berjalan secara lokal atau deployment MongoDB dengan dukungan transaksi
 
-Checkout uses a MongoDB transaction to reserve stock, create per-seller orders, and clear the cart atomically. Use a replica set or MongoDB Atlas for checkout testing; a standalone MongoDB server does not support transactions.
+Checkout menggunakan transaksi MongoDB untuk mencadangkan stok, membuat pesanan per penjual, dan mengosongkan keranjang secara atomik. Gunakan replica set atau MongoDB Atlas untuk pengujian checkout; server MongoDB standalone tidak mendukung transaksi.
 
-## Local Setup
+## Penyiapan Lokal
 
 ```bash
 npm install
@@ -17,9 +17,9 @@ cp .env.example .env
 npm run dev
 ```
 
-The API runs at `http://localhost:4000` by default.
+API berjalan di `http://localhost:4000` secara default.
 
-To run the API and web application together from the repository root:
+Untuk menjalankan API dan aplikasi web secara bersamaan dari root repositori:
 
 ```bash
 npm install
@@ -28,49 +28,49 @@ npm --prefix web install
 npm run dev
 ```
 
-The web application runs at `http://localhost:5173`.
+Aplikasi web berjalan di `http://localhost:5173`.
 
-## Environment
+## Lingkungan
 
-| Variable | Default | Purpose |
+| Variabel | Bawaan | Kegunaan |
 | --- | --- | --- |
-| `PORT` | `4000` | API port |
-| `MONGODB_URI` | empty | MongoDB connection string |
-| `JWT_SECRET` | empty | Long, random signing secret; never commit it |
-| `JWT_EXPIRES` | `7d` | JWT lifetime |
-| `CORS_ORIGINS` | `http://localhost:5173,http://127.0.0.1:5173` | Comma-separated allowed web origins |
+| `PORT` | `4000` | Port API |
+| `MONGODB_URI` | kosong | String koneksi MongoDB |
+| `JWT_SECRET` | kosong | Rahasia penandatanganan yang panjang dan acak; jangan pernah melakukan commit terhadapnya |
+| `JWT_EXPIRES` | `7d` | Masa berlaku JWT |
+| `CORS_ORIGINS` | `http://localhost:5173,http://127.0.0.1:5173` | Origin web yang diizinkan, dipisahkan dengan koma |
 
-Generate a local secret with:
+Buat rahasia lokal dengan:
 
 ```bash
 openssl rand -hex 32
 ```
 
-## API Surface
+## Cakupan API
 
-- `POST /api/auth/customer/register` and `/login`
-- `POST /api/auth/seller/register` and `/login`
+- `POST /api/auth/customer/register` dan `/login`
+- `POST /api/auth/seller/register` dan `/login`
 - `GET /api/auth/me`
-- `GET /api/products` and `GET /api/products/:id`
-- Seller product management under `/api/products` and `/api/seller/products`
-- Customer cart routes under `/api/cart`
-- Customer checkout and order history under `/api/orders`
-- Seller order inbox and status updates under `/api/seller/orders`
+- `GET /api/products` dan `GET /api/products/:id`
+- Pengelolaan produk penjual di bawah `/api/products` dan `/api/seller/products`
+- Rute keranjang pelanggan di bawah `/api/cart`
+- Checkout dan riwayat pesanan pelanggan di bawah `/api/orders`
+- Kotak masuk pesanan penjual dan pembaruan status di bawah `/api/seller/orders`
 
-All responses are JSON. Successful responses use `{ success, message, data }`; validation, authorization, not-found, and server errors use safe JSON envelopes without stack traces.
+Semua respons berupa JSON. Respons yang berhasil menggunakan `{ success, message, data }`; kesalahan validasi, otorisasi, sumber daya yang tidak ditemukan, dan kesalahan server menggunakan format JSON yang aman tanpa stack trace.
 
-## Scripts
+## Skrip
 
-| Command | Purpose |
+| Perintah | Tujuan |
 | --- | --- |
-| `npm run dev` | Start the API with Nodemon |
-| `npm start` | Start the API in production mode |
-| `npm test` | Run API unit and integration tests |
+| `npm run dev` | Jalankan API dengan Nodemon |
+| `npm start` | Jalankan API dalam mode produksi |
+| `npm test` | Jalankan pengujian unit dan integrasi API |
 
-## Security and Ownership
+## Keamanan dan Kepemilikan
 
-- Customer and seller JWT namespaces are separate.
-- Cart and checkout routes require a customer token.
-- Product and seller order operations enforce ownership in the API.
-- Product writes validate names, prices, stock, categories, and HTTP(S) image URLs.
-- Passwords are hashed with bcrypt and secrets are read from environment variables.
+- Namespace JWT pelanggan dan penjual terpisah.
+- Rute keranjang dan checkout memerlukan token pelanggan.
+- Operasi produk dan pesanan penjual menegakkan kepemilikan di API.
+- Penulisan produk memvalidasi nama, harga, stok, kategori, dan URL gambar HTTP(S).
+- Kata sandi di-hash dengan bcrypt dan rahasia dibaca dari variabel lingkungan.
