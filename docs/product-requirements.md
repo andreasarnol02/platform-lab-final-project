@@ -1,228 +1,228 @@
-# Product Requirements Document (PRD)
-### Online Marketplace — "Tokopedia-style" Two-Sided Marketplace
+# Dokumen Persyaratan Produk (PRD)
+### Marketplace Daring — Marketplace Dua Sisi "bergaya Tokopedia"
 
 | | |
 |---|---|
-| **Course** | Specialized Platform Development |
-| **Deliverable** | Tugas Kelompok Project Lab — Week 10 |
-| **Document** | Product Requirements (Unified web marketplace) |
-| **Companion** | `technical-requirements.md` |
-| **Status** | Draft for review |
-| **Date** | 2026-08-01 |
+| **Mata Kuliah** | Pengembangan Platform Khusus |
+| **Luaran** | Tugas Kelompok Proyek Lab — Minggu 10 |
+| **Dokumen** | Persyaratan Produk (Marketplace web terpadu) |
+| **Dokumen Pendamping** | `technical-requirements.md` |
+| **Status** | Draf untuk ditinjau |
+| **Tanggal** | 2026-08-01 |
 
 ---
 
-## 1. Overview & Vision
+## 1. Ikhtisar & Visi
 
-We are building an **online marketplace** modelled on [Tokopedia](https://www.tokopedia.com): a platform where independent **sellers** list products and **customers** browse, add to cart, and check out. The current deliverable is one responsive web application backed by a single REST API; native mobile clients and public deployment remain future work.
+Kami membangun **marketplace daring** yang dimodelkan berdasarkan [Tokopedia](https://www.tokopedia.com): sebuah platform tempat **penjual** independen mencantumkan produk dan **pelanggan** menelusuri, menambahkan produk ke keranjang, lalu melakukan checkout. Luaran saat ini adalah satu aplikasi web responsif yang didukung satu REST API; klien mobile native dan deployment publik masih menjadi pekerjaan mendatang.
 
-The marketplace is **two-sided**:
+Marketplace ini memiliki **dua sisi**:
 
-- **Customer side** — a storefront for discovering and buying products.
-- **Seller side** — a merchant dashboard for listing products and fulfilling orders.
+- **Sisi pelanggan** — etalase untuk menemukan dan membeli produk.
+- **Sisi penjual** — dasbor pedagang untuk mencantumkan produk dan memenuhi pesanan.
 
-Both sides share the web application through separate route namespaces and account sessions. Customers and sellers hold **separate accounts** with separate registration and login flows.
+Kedua sisi menggunakan aplikasi web yang sama melalui namespace rute dan sesi akun yang terpisah. Pelanggan dan penjual memiliki **akun terpisah** dengan alur pendaftaran dan login yang terpisah.
 
-> **Guiding constraint:** everything in this document must be buildable within the Lab Module 1–5 skill set (React, Node/Express, MongoDB, React Native/Expo, JWT, cloud deployment). We deliberately keep the feature set lean so it can be built, deployed, and demonstrated end-to-end.
+> **Batasan panduan:** semua hal dalam dokumen ini harus dapat dibangun dengan keahlian Modul Lab 1–5 (React, Node/Express, MongoDB, React Native/Expo, JWT, deployment cloud). Kami sengaja menjaga set fitur tetap ringkas agar dapat dibangun, di-deploy, dan didemonstrasikan secara end-to-end.
 
 ---
 
-## 2. Goals & Success Criteria
+## 2. Tujuan & Kriteria Keberhasilan
 
-| # | Goal | Success signal |
+| # | Tujuan | Sinyal keberhasilan |
 |---|------|----------------|
-| G1 | A customer can go from landing to placed order | Guest → register → browse → add to cart → checkout → order visible in history |
-| G2 | A seller can stock the marketplace and fulfil demand | Seller → register → add product → product appears in storefront → order arrives → status updated |
-| G3 | Add-to-cart is gated behind authentication | A logged-out user cannot add to cart on **any** client, and the API rejects the attempt |
-| G4 | One backend serves both marketplace roles | The unified web app consumes the shared API for customer and seller workflows |
-| G5 | Keep future delivery deployable | The current local web/API build is documented; public deployment and mobile artifacts are deferred |
+| G1 | Pelanggan dapat berpindah dari halaman awal hingga pesanan dibuat | Tamu → mendaftar → menelusuri → menambahkan ke keranjang → checkout → pesanan terlihat di riwayat |
+| G2 | Penjual dapat menyediakan stok di marketplace dan memenuhi permintaan | Penjual → mendaftar → menambahkan produk → produk muncul di etalase → pesanan masuk → status diperbarui |
+| G3 | Penambahan ke keranjang dibatasi autentikasi | Pengguna yang telah logout tidak dapat menambahkan produk ke keranjang di **klien mana pun**, dan API menolak percobaan tersebut |
+| G4 | Satu backend melayani kedua peran marketplace | Aplikasi web terpadu menggunakan API bersama untuk alur kerja pelanggan dan penjual |
+| G5 | Menjaga pengembangan berikutnya tetap siap di-deploy | Build web/API lokal saat ini didokumentasikan; deployment publik dan artefak mobile ditunda |
 
 ---
 
-## 3. Personas & Roles
+## 3. Persona & Peran
 
-| Persona | Description | Primary jobs-to-be-done |
+| Persona | Deskripsi | Pekerjaan utama yang perlu diselesaikan |
 |---------|-------------|-------------------------|
-| **Guest** | Unauthenticated visitor | Browse products, view details, search — **cannot** add to cart or checkout |
-| **Customer** | Registered buyer (separate account) | Add to cart, checkout, view order history, manage profile |
-| **Seller** | Registered merchant (separate account) | List/manage products, view and fulfil orders, view a simple sales dashboard |
+| **Tamu** | Pengunjung yang belum diautentikasi | Menelusuri produk, melihat detail, mencari — **tidak dapat** menambahkan ke keranjang atau checkout |
+| **Pelanggan** | Pembeli terdaftar (akun terpisah) | Menambahkan ke keranjang, checkout, melihat riwayat pesanan, mengelola profil |
+| **Penjual** | Pedagang terdaftar (akun terpisah) | Mencantumkan/mengelola produk, melihat dan memenuhi pesanan, melihat dasbor penjualan sederhana |
 
-**Account separation.** Customers and sellers are distinct account types with distinct registration and login entry points. A customer account cannot access seller functions and vice-versa (see business rule BR-1). This mirrors Tokopedia's split between the buyer app and the Seller (Toko) dashboard.
-
----
-
-## 4. Scope
-
-### 4.1 In scope
-- Customer storefront (responsive web): browse, search, cart, checkout, order history.
-- Seller dashboard (responsive web): product CRUD, order management, sales overview.
-- Separate customer/seller authentication (register, login, protected areas).
-- Gated add-to-cart and checkout (authentication required).
-- A **simulated** checkout that creates an order record (no real money movement).
-- Basic web monitoring/analytics.
-
-### 4.2 Out of scope (explicitly)
-- **Real payment gateway** integration (Midtrans/Stripe/etc.). Checkout is simulated — it creates an order in a `PENDING`/`PAID` state without charging a card.
-- Product **image upload/storage service** — product images are referenced by **URL**.
-- Native mobile applications (React Native/Expo) are deferred beyond the current web milestone.
-- Public deployment is deferred until the local web/API flows are complete.
-- Ratings, reviews, chat/messaging, wishlists, promotions/vouchers.
-- Shipping-cost calculation and courier integration (a flat/placeholder value may be shown).
-- Admin/superuser role and moderation tooling.
-- Multi-currency — all prices are in **IDR**.
-
-> Out-of-scope items are named so reviewers can see the boundary was a deliberate decision, not an omission. Any of them is a natural future extension.
+**Pemisahan akun.** Pelanggan dan penjual adalah jenis akun yang berbeda dengan jalur masuk pendaftaran dan login yang berbeda. Akun pelanggan tidak dapat mengakses fungsi penjual dan sebaliknya (lihat aturan bisnis BR-1). Hal ini mencerminkan pemisahan Tokopedia antara aplikasi pembeli dan dasbor Seller (Toko).
 
 ---
 
-## 5. Customer Site — Product Requirements
+## 4. Cakupan
 
-Platform: **Web** (React + Vite). A future mobile client can consume the same API but is not part of this milestone.
+### 4.1 Dalam cakupan
+- Etalase pelanggan (web responsif): menelusuri, mencari, keranjang, checkout, riwayat pesanan.
+- Dasbor penjual (web responsif): CRUD produk, pengelolaan pesanan, ringkasan penjualan.
+- Autentikasi pelanggan/penjual terpisah (mendaftar, login, area terlindungi).
+- Penambahan ke keranjang dan checkout yang dibatasi (autentikasi wajib).
+- Checkout **simulasi** yang membuat rekaman pesanan (tanpa perpindahan uang nyata).
+- Pemantauan/analitik web dasar.
 
-### 5.1 Feature list
+### 4.2 Di luar cakupan (secara eksplisit)
+- Integrasi **gateway pembayaran nyata** (Midtrans/Stripe/dll.). Checkout disimulasikan — sistem membuat pesanan dalam status `PENDING`/`PAID` tanpa menagih kartu.
+- Layanan **unggah/penyimpanan gambar** produk — gambar produk dirujuk melalui **URL**.
+- Aplikasi mobile native (React Native/Expo) ditunda hingga melampaui milestone web saat ini.
+- Deployment publik ditunda sampai alur web/API lokal selesai.
+- Penilaian, ulasan, chat/pesan, daftar keinginan, promosi/voucher.
+- Perhitungan biaya pengiriman dan integrasi kurir (nilai tetap/pengganti dapat ditampilkan).
+- Peran admin/superuser dan alat moderasi.
+- Dukungan multi-mata uang — semua harga dalam **IDR**.
 
-| ID | Feature | Web | Auth required |
+> Item di luar cakupan dicantumkan agar peninjau dapat melihat bahwa batasan ini merupakan keputusan yang disengaja, bukan kelalaian. Setiap item tersebut merupakan perluasan alami untuk masa mendatang.
+
+---
+
+## 5. Situs Pelanggan — Persyaratan Produk
+
+Platform: **Web** (React + Vite). Klien mobile mendatang dapat menggunakan API yang sama, tetapi bukan bagian dari milestone ini.
+
+### 5.1 Daftar fitur
+
+| ID | Fitur | Web | Autentikasi wajib |
 |----|---------|:---:|:-------------:|
-| C1 | Home / Beranda (featured + entry to catalog) | ✅ | No |
-| C2 | Product list with search & category filter | ✅ | No |
-| C3 | Product detail | ✅ | No |
-| C4 | **Add to cart (gated)** | ✅ | **Yes** |
-| C5 | Cart view (update quantity, remove) | ✅ | Yes |
-| C6 | Checkout (simulated) → creates order | ✅ | Yes |
-| C7 | Order history & order detail | ✅ | Yes |
-| C8 | Customer register / login (JWT) | ✅ | — |
-| C9 | Profile (view basic info, logout) | ✅ | Yes |
+| C1 | Beranda (produk unggulan + akses ke katalog) | ✅ | Tidak |
+| C2 | Daftar produk dengan pencarian & filter kategori | ✅ | Tidak |
+| C3 | Detail produk | ✅ | Tidak |
+| C4 | **Tambah ke keranjang (dibatasi)** | ✅ | **Ya** |
+| C5 | Tampilan keranjang (perbarui kuantitas, hapus) | ✅ | Ya |
+| C6 | Checkout (simulasi) → membuat pesanan | ✅ | Ya |
+| C7 | Riwayat pesanan & detail pesanan | ✅ | Ya |
+| C8 | Pendaftaran / login pelanggan (JWT) | ✅ | — |
+| C9 | Profil (lihat info dasar, keluar) | ✅ | Ya |
 
-### 5.2 Key user stories & acceptance criteria
+### 5.2 Cerita pengguna utama & kriteria penerimaan
 
-**C2 — Browse & search products**
-> As a guest or customer, I want to browse and search products so I can find what I want.
-- **AC1:** Product list shows image, name, price (IDR), and seller/store name.
-- **AC2:** A search box filters by product name (case-insensitive, substring).
-- **AC3:** A category filter narrows the list.
-- **AC4:** The layout is responsive (mobile → single column, desktop → grid).
+**C2 — Menelusuri & mencari produk**
+> Sebagai tamu atau pelanggan, saya ingin menelusuri dan mencari produk agar dapat menemukan yang saya inginkan.
+- **AC1:** Daftar produk menampilkan gambar, nama, harga (IDR), dan nama penjual/toko.
+- **AC2:** Kotak pencarian memfilter berdasarkan nama produk (tidak peka huruf besar-kecil, substring).
+- **AC3:** Filter kategori mempersempit daftar.
+- **AC4:** Tata letak responsif (mobile → satu kolom, desktop → grid).
 
-**C4 — Add to cart (gated auth)** ⭐ *core requirement*
-> As a customer, I want to add a product to my cart; as a guest, I should be prompted to log in first.
-- **AC1:** A **guest** who taps "Add to cart" is redirected to the customer **login** page (with a return path back to the product).
-- **AC2:** A logged-in **customer** adds the item; the cart badge/count updates.
-- **AC3:** The **API rejects** any add-to-cart request without a valid customer token (`401`) — the gate is enforced server-side, not only in the UI (see BR-2).
-- **AC4:** Adding an item already in the cart increases its quantity rather than duplicating the line.
+**C4 — Tambah ke keranjang (autentikasi dibatasi)** ⭐ *persyaratan inti*
+> Sebagai pelanggan, saya ingin menambahkan produk ke keranjang; sebagai tamu, saya harus diminta untuk login terlebih dahulu.
+- **AC1:** **Tamu** yang mengetuk "Tambah ke keranjang" diarahkan ke halaman **login** pelanggan (dengan jalur kembali ke produk).
+- **AC2:** **Pelanggan** yang sudah login menambahkan item; lencana/jumlah keranjang diperbarui.
+- **AC3:** **API menolak** setiap permintaan penambahan ke keranjang tanpa token pelanggan yang valid (`401`) — pembatasan diberlakukan di sisi server, bukan hanya di UI (lihat BR-2).
+- **AC4:** Menambahkan item yang sudah ada di keranjang meningkatkan kuantitasnya, bukan menggandakan baris.
 
-**C6 — Checkout (simulated)**
-> As a customer, I want to place an order for the items in my cart.
-- **AC1:** Only reachable when authenticated **and** the cart is non-empty.
-- **AC2:** Submitting groups the cart by seller and creates **one order per seller** (BR-7), each capturing that seller's line items, quantities, unit prices, and sub-total; the cart is then emptied.
-- **AC3:** The new order(s) appear immediately in the customer's order history with status `PAID`; the simulated payment confirms the order during checkout (see BR-3).
-- **AC4:** Product **stock** is decremented for each ordered line.
+**C6 — Checkout (simulasi)**
+> Sebagai pelanggan, saya ingin membuat pesanan untuk item-item di keranjang saya.
+- **AC1:** Hanya dapat diakses saat sudah diautentikasi **dan** keranjang tidak kosong.
+- **AC2:** Pengiriman formulir mengelompokkan keranjang berdasarkan penjual dan membuat **satu pesanan per penjual** (BR-7), masing-masing menyimpan item baris penjual tersebut, kuantitas, harga satuan, dan subtotal; keranjang kemudian dikosongkan.
+- **AC3:** Pesanan baru langsung muncul dalam riwayat pesanan pelanggan dengan status `PAID`; pembayaran simulasi mengonfirmasi pesanan selama checkout (lihat BR-3).
+- **AC4:** **Stok** produk dikurangi untuk setiap baris pesanan.
 
-**C7 — Order history**
-> As a customer, I want to see my past orders and their status.
-- **AC1:** Lists the customer's orders (most recent first) with order id, date, total, and status.
-- **AC2:** Order detail shows line items and the current status set by the seller.
+**C7 — Riwayat pesanan**
+> Sebagai pelanggan, saya ingin melihat pesanan-pesanan sebelumnya beserta statusnya.
+- **AC1:** Menampilkan pesanan pelanggan (terbaru terlebih dahulu) dengan id pesanan, tanggal, total, dan status.
+- **AC2:** Detail pesanan menampilkan item baris dan status terkini yang ditetapkan oleh penjual.
 
-**C8 — Customer authentication**
-> As a customer, I want to register and log in securely.
-- **AC1:** Registration requires email + password (+ name); duplicate emails are rejected.
-- **AC2:** Login returns a JWT; protected customer routes/screens are inaccessible without it.
-- **AC3:** On mobile, the token is stored on-device and the session survives an app restart.
+**C8 — Autentikasi pelanggan**
+> Sebagai pelanggan, saya ingin mendaftar dan login dengan aman.
+- **AC1:** Pendaftaran memerlukan email + password (+ name); email duplikat ditolak.
+- **AC2:** Login mengembalikan JWT; rute/layar pelanggan yang dilindungi tidak dapat diakses tanpanya.
+- **AC3:** Di mobile, token disimpan di perangkat dan sesi tetap bertahan setelah aplikasi dimulai ulang.
 
 ---
 
-## 6. Seller Site — Product Requirements
+## 6. Situs Penjual — Persyaratan Produk
 
-Platform: **Web** (React + Vite seller dashboard). Sellers hold **separate accounts** from customers.
+Platform: **Web** (dasbor penjual React + Vite). Penjual memiliki **akun terpisah** dari pelanggan.
 
-### 6.1 Feature list
+### 6.1 Daftar fitur
 
-| ID | Feature | Web | Auth required |
+| ID | Fitur | Web | Autentikasi wajib |
 |----|---------|:---:|:-------------:|
-| S1 | Seller register / login (JWT, separate flow) | ✅ | — |
-| S2 | Product management — create | ✅ | Yes (seller) |
-| S3 | Product management — edit / update stock | ✅ | Yes (seller) |
-| S4 | Product management — delete / deactivate | ✅ | Yes (seller) |
-| S5 | My products list | ✅ | Yes (seller) |
-| S6 | Incoming orders inbox | ✅ | Yes (seller) |
-| S7 | Update order status (fulfilment) | ✅ | Yes (seller) |
-| S8 | Sales dashboard (counts & totals) | ✅ | Yes (seller) |
+| S1 | Pendaftaran / login penjual (JWT, alur terpisah) | ✅ | — |
+| S2 | Manajemen produk — buat | ✅ | Ya (penjual) |
+| S3 | Manajemen produk — edit / perbarui stok | ✅ | Ya (penjual) |
+| S4 | Manajemen produk — hapus / nonaktifkan | ✅ | Ya (penjual) |
+| S5 | Daftar produk saya | ✅ | Ya (penjual) |
+| S6 | Kotak masuk pesanan masuk | ✅ | Ya (penjual) |
+| S7 | Perbarui status pesanan (pemenuhan) | ✅ | Ya (penjual) |
+| S8 | Dasbor penjualan (jumlah & total) | ✅ | Ya (penjual) |
 
-### 6.2 Key user stories & acceptance criteria
+### 6.2 Cerita pengguna utama & kriteria penerimaan
 
-**S2/S3 — Manage products**
-> As a seller, I want to add and edit my products so customers can buy them.
-- **AC1:** Create requires name, price, description, category, stock, and image URL.
-- **AC2:** A newly created product **immediately appears** in the customer storefront (C2).
-- **AC3:** A seller can only edit/delete **their own** products (ownership enforced by the API — BR-4).
-- **AC4:** Editing stock to `0` hides the product from purchase (shown as out of stock).
+**S2/S3 — Kelola produk**
+> Sebagai penjual, saya ingin menambahkan dan mengedit produk saya agar pelanggan dapat membelinya.
+- **AC1:** Pembuatan memerlukan name, price, description, category, stock, dan image URL.
+- **AC2:** Produk yang baru dibuat **langsung muncul** di etalase pelanggan (C2).
+- **AC3:** Penjual hanya dapat mengedit/menghapus produk **miliknya sendiri** (kepemilikan diberlakukan oleh API — BR-4).
+- **AC4:** Mengubah stok menjadi `0` menyembunyikan produk dari pembelian (ditampilkan sebagai habis stok).
 
-**S6/S7 — Fulfil orders**
-> As a seller, I want to see orders for my products and update their status.
-- **AC1:** The inbox lists **this seller's own** orders (one order per seller — BR-7), newest first.
-- **AC2:** The seller can advance their order's status along the defined lifecycle (BR-3).
-- **AC3:** The status change is reflected in the customer's order history (C7).
+**S6/S7 — Penuhi pesanan**
+> Sebagai penjual, saya ingin melihat pesanan untuk produk saya dan memperbarui statusnya.
+- **AC1:** Kotak masuk menampilkan **pesanan milik penjual ini sendiri** (satu pesanan per penjual — BR-7), dengan yang terbaru terlebih dahulu.
+- **AC2:** Penjual dapat memajukan status pesanannya mengikuti siklus yang telah ditentukan (BR-3).
+- **AC3:** Perubahan status tercermin dalam riwayat pesanan pelanggan (C7).
 
-**S8 — Sales dashboard**
-> As a seller, I want a quick overview of my sales.
-- **AC1:** Shows total number of orders and total revenue for the seller's products.
-- **AC2:** Shows a count of products currently listed and how many are out of stock.
+**S8 — Dasbor penjualan**
+> Sebagai penjual, saya ingin melihat ringkasan penjualan dengan cepat.
+- **AC1:** Menampilkan jumlah total pesanan dan pendapatan total dari produk penjual.
+- **AC2:** Menampilkan jumlah produk yang sedang tercantum dan jumlah produk yang habis stok.
 
 ---
 
-## 7. Cross-Cutting Business Rules
+## 7. Aturan Bisnis Lintas Fitur
 
-| ID | Rule |
+| ID | Aturan |
 |----|------|
-| **BR-1** | Customer and seller accounts are separate namespaces. A token issued for one type must not grant access to the other type's protected resources. |
-| **BR-2** | **Gated cart:** add-to-cart, view-cart, and checkout require a valid **customer** token. The gate is enforced at the API layer (`401` on missing/invalid token), with the UI redirecting to login as a convenience — never as the only barrier. |
-| **BR-3** | **Order lifecycle:** `PENDING → PAID → PROCESSED → SHIPPED → COMPLETED`, with `CANCELLED` reachable from `PENDING`/`PAID`. Payment is simulated: checkout confirms each per-seller order (BR-7) as `PAID` immediately, representing the `PENDING → PAID` step. The owning seller advances `PAID → PROCESSED → SHIPPED → COMPLETED`. |
-| **BR-4** | **Ownership:** a seller may read/update/delete only products they own and may view/advance only their own orders. |
-| **BR-5** | **Stock:** checkout decrements stock; an order line cannot exceed available stock at time of checkout. |
-| **BR-6** | **Pricing snapshot:** an order stores the unit price at time of purchase, so later price edits by the seller do not change historical orders. |
-| **BR-7** | **One order per seller:** at checkout the cart is grouped by seller and a separate order is created for each seller (a single checkout may produce multiple orders). This keeps each order's single `status` owned by exactly one seller (like Tokopedia's per-store invoices). |
+| **BR-1** | Akun pelanggan dan penjual berada dalam namespace terpisah. Token yang diterbitkan untuk satu jenis tidak boleh memberikan akses ke sumber daya terlindungi milik jenis lainnya. |
+| **BR-2** | **Keranjang terbatas:** penambahan ke keranjang, melihat keranjang, dan checkout memerlukan token **pelanggan** yang valid. Pembatasan diberlakukan di lapisan API (`401` jika token tidak ada/tidak valid), sementara UI mengarahkan ke login sebagai kemudahan — tidak pernah menjadi satu-satunya penghalang. |
+| **BR-3** | **Siklus pesanan:** `PENDING → PAID → PROCESSED → SHIPPED → COMPLETED`, dengan `CANCELLED` dapat dicapai dari `PENDING`/`PAID`. Pembayaran disimulasikan: checkout langsung mengonfirmasi setiap pesanan per penjual (BR-7) sebagai `PAID`, yang merepresentasikan langkah `PENDING → PAID`. Penjual pemilik memajukan `PAID → PROCESSED → SHIPPED → COMPLETED`. |
+| **BR-4** | **Kepemilikan:** penjual hanya boleh membaca/memperbarui/menghapus produk yang dimilikinya dan hanya boleh melihat/memajukan pesanan miliknya sendiri. |
+| **BR-5** | **Stok:** checkout mengurangi stok; baris pesanan tidak boleh melebihi stok yang tersedia saat checkout. |
+| **BR-6** | **Snapshot harga:** pesanan menyimpan harga satuan saat pembelian, sehingga perubahan harga berikutnya oleh penjual tidak mengubah pesanan historis. |
+| **BR-7** | **Satu pesanan per penjual:** saat checkout, keranjang dikelompokkan berdasarkan penjual dan pesanan terpisah dibuat untuk setiap penjual (satu checkout dapat menghasilkan beberapa pesanan). Dengan demikian, setiap pesanan memiliki satu `status` yang dimiliki tepat oleh satu penjual (seperti faktur per toko di Tokopedia). |
 
 ---
 
-## 8. Non-Functional Requirements
+## 8. Persyaratan Nonfungsional
 
-| Category | Requirement |
+| Kategori | Persyaratan |
 |----------|-------------|
-| **Responsiveness** | The web layout uses Flexbox/CSS Grid and adapts from mobile (~360px) to desktop (~1280px+). |
-| **Usability** | Consistent navigation; clear empty/loading/error states; primary actions reachable in ≤ 3 taps. |
-| **Performance** | Product list first render within a couple of seconds on a normal connection; paginate or cap list size to keep payloads reasonable. |
-| **Security** | Passwords hashed; secrets in environment variables; protected routes enforced server-side; input validated (see TRD §9). |
-| **Availability** | The local web/API flow is runnable from the documented setup; public deployment and mobile artifacts are deferred. |
-| **Maintainability** | Customer and seller route surfaces remain separated inside one web app, backed by the shared API. |
-| **Observability** | Basic analytics/monitoring wired on the web client (Google Analytics or LogRocket). |
+| **Responsivitas** | Tata letak web menggunakan Flexbox/CSS Grid dan beradaptasi dari mobile (~360px) hingga desktop (~1280px+). |
+| **Kemudahan penggunaan** | Navigasi konsisten; keadaan kosong/memuat/kesalahan yang jelas; tindakan utama dapat dijangkau dalam ≤ 3 ketukan. |
+| **Performa** | Render pertama daftar produk selesai dalam beberapa detik pada koneksi normal; gunakan pagination atau batasi ukuran daftar agar payload tetap wajar. |
+| **Keamanan** | Password di-hash; rahasia disimpan dalam variabel lingkungan; rute terlindungi diberlakukan di sisi server; input divalidasi (lihat TRD §9). |
+| **Ketersediaan** | Alur web/API lokal dapat dijalankan berdasarkan penyiapan yang didokumentasikan; deployment publik dan artefak mobile ditunda. |
+| **Kemudahan pemeliharaan** | Permukaan rute pelanggan dan penjual tetap terpisah dalam satu aplikasi web yang didukung API bersama. |
+| **Observabilitas** | Analitik/pemantauan dasar dipasang pada klien web (Google Analytics atau LogRocket). |
 
 ---
 
-## 9. Assumptions & Constraints
+## 9. Anggapan & Batasan
 
-- Prices and totals are in **IDR**; no tax/discount engine.
-- One product belongs to exactly one seller; there are no product variants (size/colour) in this version.
-- A single cart per customer; checkout groups the cart by seller and creates **one order per seller** (BR-7), so a single checkout may produce multiple orders — each owned and fulfilled independently by its seller.
-- Shipping address is captured as free text at checkout; no address book.
-- The tech stack is fixed by the assignment (see `technical-requirements.md` §3).
+- Harga dan total dalam **IDR**; tidak ada mesin pajak/diskon.
+- Satu produk tepat dimiliki oleh satu penjual; versi ini tidak memiliki varian produk (ukuran/warna).
+- Satu keranjang untuk setiap pelanggan; checkout mengelompokkan keranjang berdasarkan penjual dan membuat **satu pesanan per penjual** (BR-7), sehingga satu checkout dapat menghasilkan beberapa pesanan — masing-masing dimiliki dan dipenuhi secara independen oleh penjualnya.
+- Alamat pengiriman dicatat sebagai teks bebas saat checkout; tidak ada buku alamat.
+- Stack teknologi ditetapkan oleh tugas (lihat `technical-requirements.md` §3).
 
 ---
 
-## 10. Requirements → Grading Rubric Mapping (Soal 1–5)
+## 10. Persyaratan → Pemetaan Rubrik Penilaian (Soal 1–5)
 
-This marketplace is designed so each graded component maps to concrete features here.
+Marketplace ini dirancang agar setiap komponen yang dinilai dapat dipetakan ke fitur konkret di sini.
 
-| Soal (weight) | Topic | Covered by |
+| Soal (bobot) | Topik | Dicakup oleh |
 |---------------|-------|-----------|
-| **Soal 1 (20%)** | Frontend React Web | C1–C6 customer web (home, list, detail, cart, checkout) + React Router + responsive Flexbox/Grid |
-| **Soal 2 (20%)** | Backend Node/Express + MongoDB | The shared API: product & user (customer/seller) management, CRUD + validation (see TRD §6) |
-| **Soal 3 (20%)** | Mobile React Native | Deferred mobile milestone; the shared REST contracts are documented for future customer and seller clients |
-| **Soal 4 (20%)** | Data Integration & Authentication | C8/S1 JWT auth, BR-1/BR-2 protected & gated routes, Axios/Fetch API integration |
-| **Soal 5 (15%)** | Deployment & Monitoring | Web analytics is implemented; public web/API deployment and Expo delivery remain deferred |
+| **Soal 1 (20%)** | Frontend Web React | C1–C6 web pelanggan (beranda, daftar, detail, keranjang, checkout) + React Router + Flexbox/Grid responsif |
+| **Soal 2 (20%)** | Backend Node/Express + MongoDB | API bersama: pengelolaan produk & pengguna (pelanggan/penjual), CRUD + validasi (lihat TRD §6) |
+| **Soal 3 (20%)** | Mobile React Native | Milestone mobile ditunda; kontrak REST bersama didokumentasikan untuk klien pelanggan dan penjual mendatang |
+| **Soal 4 (20%)** | Integrasi Data & Autentikasi | Autentikasi JWT C8/S1, rute terlindungi & terbatas BR-1/BR-2, integrasi API Axios/Fetch |
+| **Soal 5 (15%)** | Deployment & Pemantauan | Analitik web diimplementasikan; deployment web/API publik dan pengiriman Expo masih ditunda |
 
 ---
 
-## Appendix A — Glossary
+## Lampiran A — Glosarium
 
-- **Gated auth / gated cart** — the requirement that add-to-cart (and everything after) is available only to authenticated customers, enforced at the API.
-- **Simulated checkout** — order creation without a real payment gateway.
-- **Order lifecycle** — the fixed sequence of statuses an order moves through (BR-3).
-- **Beranda** — Indonesian for "Home"; the storefront landing page.
+- **Autentikasi/keranjang terbatas (gated auth / gated cart)** — persyaratan bahwa penambahan ke keranjang (dan semua proses setelahnya) hanya tersedia bagi pelanggan yang telah diautentikasi, dan diberlakukan di API.
+- **Checkout simulasi (simulated checkout)** — pembuatan pesanan tanpa gateway pembayaran nyata.
+- **Siklus pesanan (order lifecycle)** — urutan status tetap yang dilalui pesanan (BR-3).
+- **Beranda** — istilah bahasa Indonesia untuk "Home"; halaman awal etalase.

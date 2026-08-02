@@ -1,127 +1,127 @@
-# Technical Requirements Document (TRD)
-### Online Marketplace — "Tokopedia-style" Two-Sided Marketplace
+# Dokumen Persyaratan Teknis (TRD)
+### Marketplace Daring — Marketplace Dua Sisi "bergaya Tokopedia"
 
 | | |
 |---|---|
-| **Course** | Specialized Platform Development |
-| **Deliverable** | Tugas Kelompok Project Lab — Week 10 |
-| **Document** | Technical Requirements (Unified web marketplace) |
-| **Companion** | `product-requirements.md` |
-| **Status** | Draft for review |
-| **Date** | 2026-08-01 |
+| **Mata Kuliah** | Pengembangan Platform Khusus |
+| **Luaran** | Tugas Kelompok Proyek Lab — Minggu 10 |
+| **Dokumen** | Persyaratan Teknis (Marketplace web terpadu) |
+| **Dokumen Pendamping** | `product-requirements.md` |
+| **Status** | Draf untuk ditinjau |
+| **Tanggal** | 2026-08-01 |
 
 ---
 
-## 1. Introduction
+## 1. Pendahuluan
 
-This document specifies the **technical design** for the marketplace defined in `product-requirements.md`. It covers system architecture, the shared API, the data model, authentication/authorization, the unified web app, monitoring, and local setup. Mobile clients and public deployment are documented as future work.
+Dokumen ini menetapkan **rancangan teknis** untuk marketplace yang didefinisikan dalam `product-requirements.md`. Dokumen ini mencakup arsitektur sistem, API bersama, model data, autentikasi/otorisasi, aplikasi web terpadu, pemantauan, dan penyiapan lokal. Klien mobile dan deployment publik didokumentasikan sebagai pekerjaan mendatang.
 
-The current system is **one unified web application served by one backend**:
+Sistem saat ini adalah **satu aplikasi web terpadu yang dilayani satu backend**:
 
-1. Customer storefront routes (React + Vite)
-2. Seller dashboard routes (React + Vite)
+1. Rute etalase pelanggan (React + Vite)
+2. Rute dasbor penjual (React + Vite)
 
-Both route surfaces consume a single **Node.js + Express REST API** backed by **MongoDB**. Native mobile clients can be added later without changing the API contract.
+Kedua permukaan rute menggunakan satu **Node.js + Express REST API** yang didukung **MongoDB**. Klien mobile native dapat ditambahkan kemudian tanpa mengubah kontrak API.
 
 ---
 
-## 2. System Architecture
+## 2. Arsitektur Sistem
 
 ```mermaid
 flowchart TB
-    WEB["Unified Web<br/>(React + Vite)<br/>customer + seller routes"]
+    WEB["Web Terpadu<br/>(React + Vite)<br/>rute pelanggan + penjual"]
 
     API["REST API<br/>(Node.js + Express)"]
     DB[("MongoDB<br/>(Atlas)")]
-    MON["Monitoring<br/>Google Analytics / LogRocket"]
+    MON["Pemantauan<br/>Google Analytics / LogRocket"]
 
     WEB -->|"HTTPS / JSON<br/>Axios · JWT"| API
 
     API -->|"Mongoose ODM"| DB
-    WEB -.->|"page/events"| MON
+    WEB -.->|"halaman/acara"| MON
 ```
 
-**Design principles**
+**Prinsip desain**
 
-- **One API, many clients.** Business rules (gated cart, ownership, stock, order lifecycle) live in the API so every client inherits them and cannot bypass them.
-- **Stateless auth.** The API keeps no server session; each request carries a JWT. This scales horizontally and works identically for web and mobile.
-- **Thin clients.** Clients render, validate for UX, and call the API. Authorization is never trusted from the client.
+- **Satu API, banyak klien.** Aturan bisnis (keranjang terbatas, kepemilikan, stok, siklus pesanan) berada di API agar setiap klien mewarisinya dan tidak dapat melewatinya.
+- **Autentikasi stateless.** API tidak menyimpan sesi server; setiap permintaan membawa JWT. Pola ini dapat diskalakan secara horizontal dan bekerja sama untuk web maupun mobile.
+- **Klien tipis.** Klien melakukan render, validasi untuk UX, dan memanggil API. Otorisasi tidak pernah dipercaya dari klien.
 
-### 2.1 Request flow (example: gated add-to-cart)
+### 2.1 Alur permintaan (contoh: penambahan ke keranjang yang dibatasi)
 
 ```mermaid
 sequenceDiagram
-    participant U as Customer (client)
-    participant API as Express API
+    participant U as Pelanggan (klien)
+    participant API as API Express
     participant DB as MongoDB
 
     U->>API: POST /api/cart/items { productId, quantity }<br/>Authorization: Bearer customerJWT
-    API->>API: authMiddleware → verify JWT, require type=customer
-    alt token missing/invalid
-        API-->>U: 401 Unauthorized
-    else valid customer
-        API->>DB: load product, validate stock
-        API->>DB: upsert cart line for customer
+    API->>API: authMiddleware → verifikasi JWT, wajibkan type=customer
+    alt token hilang/tidak valid
+        API-->>U: 401 Tidak Terautentikasi
+    else pelanggan valid
+        API->>DB: muat produk, validasi stok
+        API->>DB: upsert baris keranjang pelanggan
         API-->>U: 200 { cart }
     end
 ```
 
 ---
 
-## 3. Technology Stack
+## 3. Stack Teknologi
 
-| Layer | Technology | Notes |
+| Lapisan | Teknologi | Catatan |
 |-------|------------|-------|
-| Customer/Seller Web | **React 19 + React Router 8**, built with **Vite** | Responsive via Flexbox / CSS Grid |
-| Mobile (both sides) | React Native + Expo | Deferred; future clients will reuse the API |
-| HTTP client | **Axios** (Fetch acceptable) | Shared request/interceptor pattern |
-| Backend | **Node.js + Express.js** | RESTful API |
-| Database | **MongoDB** (Atlas) + **Mongoose** | Schemas & validation |
-| Auth | **JWT** (`jsonwebtoken`) + **bcrypt** | Separate customer/seller identities |
-| Validation | **express-validator** (or `zod`) | Server-side input validation |
-| Deploy — Web | Vercel (or Netlify) | Deferred public deployment; one web project when enabled |
-| Deploy — API | Render (or Heroku) | Deferred public deployment; single service when enabled |
-| Deploy — Mobile | Expo (EAS) | Deferred |
-| Monitoring | **Google Analytics** or **LogRocket** | On web clients |
+| Web Pelanggan/Penjual | **React 19 + React Router 8**, dibangun dengan **Vite** | Responsif melalui Flexbox / CSS Grid |
+| Mobile (kedua sisi) | React Native + Expo | Ditunda; klien mendatang akan menggunakan kembali API |
+| Klien HTTP | **Axios** (Fetch dapat digunakan) | Pola request/interceptor bersama |
+| Backend | **Node.js + Express.js** | API RESTful |
+| Database | **MongoDB** (Atlas) + **Mongoose** | Skema & validasi |
+| Autentikasi | **JWT** (`jsonwebtoken`) + **bcrypt** | Identitas pelanggan/penjual terpisah |
+| Validasi | **express-validator** (atau `zod`) | Validasi input di sisi server |
+| Deployment — Web | Vercel (atau Netlify) | Deployment publik ditunda; satu proyek web saat diaktifkan |
+| Deployment — API | Render (atau Heroku) | Deployment publik ditunda; satu layanan saat diaktifkan |
+| Deployment — Mobile | Expo (EAS) | Ditunda |
+| Pemantauan | **Google Analytics** atau **LogRocket** | Pada klien web |
 
-> The stack is fixed to match the graded Lab modules. Choose **one** option where alternatives are listed (e.g. Vercel *or* Netlify) and use it consistently. The web client uses React Router 8's declarative APIs imported from `react-router`.
+> Stack ditetapkan agar sesuai dengan modul Lab yang dinilai. Pilih **satu** opsi jika terdapat beberapa alternatif (misalnya Vercel *atau* Netlify) dan gunakan secara konsisten. Klien web menggunakan API deklaratif React Router 8 yang diimpor dari `react-router`.
 
 ---
 
-## 4. Suggested Repository Structure
+## 4. Struktur Repositori yang Disarankan
 
-A monorepo keeps the shared API and unified web client discoverable; future mobile clients can be added without changing the current boundaries.
+Monorepo membuat API bersama dan klien web terpadu mudah ditemukan; klien mobile mendatang dapat ditambahkan tanpa mengubah batasan saat ini.
 
 ```
 marketplace/
-├── api/                     # Node.js + Express + Mongoose  (deployed to Render)
+├── api/                     # Node.js + Express + Mongoose  (di-deploy ke Render)
 │   ├── src/
-│   │   ├── models/          # Customer, Seller, Product, Cart, Order
+│   │   ├── models/          # Pelanggan, Penjual, Produk, Keranjang, Pesanan
 │   │   ├── routes/          # auth, products, cart, orders
 │   │   ├── controllers/
-│   │   ├── middleware/      # auth (JWT), validation, error handler
+│   │   ├── middleware/      # autentikasi (JWT), validasi, penangan kesalahan
 │   │   └── app.js
 │   └── package.json
-├── web/                     # Unified React + Vite app (customer + seller routes)
-└── docs/                    # this PRD + TRD + design system
+├── web/                     # Aplikasi React + Vite terpadu (rute pelanggan + penjual)
+└── docs/                    # PRD + TRD + sistem desain ini
 ```
 
 ---
 
-## 5. Data Model
+## 5. Model Data
 
-Separate `customers` and `sellers` collections reflect the **separate-accounts** decision (BR-1). Products belong to a seller; orders reference a customer and snapshot line items.
+Koleksi `customers` dan `sellers` yang terpisah mencerminkan keputusan **akun terpisah** (BR-1). Produk dimiliki oleh penjual; pesanan merujuk pada pelanggan dan menyimpan snapshot item baris.
 
 ```mermaid
 erDiagram
-    CUSTOMER ||--o{ CART : has
-    CUSTOMER ||--o{ ORDER : places
-    SELLER   ||--o{ PRODUCT : lists
-    SELLER   ||--o{ ORDER : receives
-    PRODUCT  ||--o{ CART_ITEM : "referenced by"
-    PRODUCT  ||--o{ ORDER_ITEM : "snapshotted in"
-    CART     ||--o{ CART_ITEM : contains
-    ORDER    ||--o{ ORDER_ITEM : contains
+    CUSTOMER ||--o{ CART : memiliki
+    CUSTOMER ||--o{ ORDER : membuat
+    SELLER   ||--o{ PRODUCT : mencantumkan
+    SELLER   ||--o{ ORDER : menerima
+    PRODUCT  ||--o{ CART_ITEM : "direferensikan oleh"
+    PRODUCT  ||--o{ ORDER_ITEM : "disimpan sebagai snapshot di"
+    CART     ||--o{ CART_ITEM : berisi
+    ORDER    ||--o{ ORDER_ITEM : berisi
 
     CUSTOMER {
         string id
@@ -175,14 +175,14 @@ erDiagram
     }
 ```
 
-### 5.1 Collection schemas (Mongoose-style)
+### 5.1 Skema koleksi (gaya Mongoose)
 
 **customers**
 ```js
 {
   name:     { type: String, required: true },
   email:    { type: String, required: true, unique: true, lowercase: true },
-  password: { type: String, required: true }, // bcrypt hash
+  password: { type: String, required: true }, // hash bcrypt
   phone:    { type: String },
   address:  { type: String }
 }
@@ -208,13 +208,13 @@ erDiagram
   price:      { type: Number, required: true, min: 0 }, // IDR
   category:   { type: String, required: true },
   stock:      { type: Number, required: true, min: 0 },
-  imageUrl:   { type: String, required: true }, // HTTP(S) URL, not uploaded file
+  imageUrl:   { type: String, required: true }, // URL HTTP(S), bukan file yang diunggah
   isActive:   { type: Boolean, default: true },
-  images:     [{ type: String }] // legacy records only; normalized to imageUrl on read
+  images:     [{ type: String }] // hanya rekaman lama; dinormalisasi menjadi imageUrl saat dibaca
 }
 ```
 
-**carts** (one per customer)
+**carts** (satu per pelanggan)
 ```js
 {
   customer: { type: ObjectId, ref: 'Customer', required: true, unique: true },
@@ -222,163 +222,163 @@ erDiagram
 }
 ```
 
-**orders** — **one order per seller** (a single checkout may create several; line items are snapshotted — BR-6, BR-7)
+**orders** — **satu pesanan per penjual** (satu checkout dapat membuat beberapa pesanan; item baris dibuat sebagai snapshot — BR-6, BR-7)
 ```js
 {
   customer: { type: ObjectId, ref: 'Customer', required: true },
-  seller:   { type: ObjectId, ref: 'Seller', required: true, index: true }, // one seller per order
+  seller:   { type: ObjectId, ref: 'Seller', required: true, index: true }, // satu penjual per pesanan
   items: [{
     product:  { type: ObjectId, ref: 'Product' },
     name:     String,
-    price:    Number, // price at time of purchase
+    price:    Number, // harga saat pembelian
     quantity: Number
   }],
-  totalPrice:      { type: Number, required: true }, // this seller's sub-total
+  totalPrice:      { type: Number, required: true }, // subtotal penjual ini
   status:          { type: String, enum: ['PENDING','PAID','PROCESSED','SHIPPED','COMPLETED','CANCELLED'], default: 'PENDING' },
   shippingAddress: { type: String, required: true },
   paymentMethod:   { type: String, enum: ['COD','Transfer'], required: true }
 }
 ```
 
-> **Why one order per seller?** An order carries a single `status` that its seller advances (BR-3). If one order spanned multiple sellers, seller A marking it `SHIPPED` would wrongly flip the status for seller B's unshipped items and mislead the customer. So checkout **groups the cart by `seller` and creates one order per seller** (BR-7) — the same way Tokopedia splits a checkout into one invoice per store. Each order then has exactly one seller, one clean status, a cheap inbox query (`orders.find({ seller: me })`), and its own sub-total.
+> **Mengapa satu pesanan per penjual?** Pesanan memiliki satu `status` yang dimajukan oleh penjualnya (BR-3). Jika satu pesanan mencakup beberapa penjual, penjual A yang menandainya sebagai `SHIPPED` akan keliru mengubah status item penjual B yang belum dikirim dan menyesatkan pelanggan. Karena itu, checkout **mengelompokkan keranjang berdasarkan `seller` dan membuat satu pesanan per penjual** (BR-7) — sama seperti Tokopedia membagi checkout menjadi satu faktur per toko. Setiap pesanan kemudian memiliki tepat satu penjual, satu status yang jelas, kueri kotak masuk yang murah (`orders.find({ seller: me })`), dan subtotalnya sendiri.
 >
-> **Why snapshot `name` and `price` into each line?** Orders are historical records. If a seller later edits a price or deletes a product, past orders must stay accurate (BR-6).
+> **Mengapa membuat snapshot `name` dan `price` di setiap baris?** Pesanan adalah rekaman historis. Jika penjual kemudian mengubah harga atau menghapus produk, pesanan sebelumnya harus tetap akurat (BR-6).
 
 ---
 
-## 6. REST API Specification
+## 6. Spesifikasi REST API
 
-Base URL: `/api`. All request/response bodies are JSON. Protected routes require `Authorization: Bearer <JWT>`.
+URL dasar: `/api`. Semua body permintaan/respons adalah JSON. Rute terlindungi memerlukan `Authorization: Bearer <JWT>`.
 
-**Legend:** 🔓 public · 🧑 customer token · 🏪 seller token
+**Legenda:** 🔓 publik · 🧑 token pelanggan · 🏪 token penjual
 
-### 6.1 Authentication (separate customer/seller flows)
+### 6.1 Autentikasi (alur pelanggan/penjual terpisah)
 
-| Method | Path | Access | Purpose |
+| Metode | Path | Akses | Tujuan |
 |--------|------|:------:|---------|
-| POST | `/api/auth/customer/register` | 🔓 | Create customer account |
-| POST | `/api/auth/customer/login` | 🔓 | Customer login → JWT (`type: "customer"`) |
-| POST | `/api/auth/seller/register` | 🔓 | Create seller account |
-| POST | `/api/auth/seller/login` | 🔓 | Seller login → JWT (`type: "seller"`) |
-| GET | `/api/auth/me` | 🧑/🏪 | Return current identity from token |
+| POST | `/api/auth/customer/register` | 🔓 | Buat akun pelanggan |
+| POST | `/api/auth/customer/login` | 🔓 | Login pelanggan → JWT (`type: "customer"`) |
+| POST | `/api/auth/seller/register` | 🔓 | Buat akun penjual |
+| POST | `/api/auth/seller/login` | 🔓 | Login penjual → JWT (`type: "seller"`) |
+| GET | `/api/auth/me` | 🧑/🏪 | Kembalikan identitas saat ini dari token |
 
-### 6.2 Products
+### 6.2 Produk
 
-| Method | Path | Access | Purpose |
+| Metode | Path | Akses | Tujuan |
 |--------|------|:------:|---------|
-| GET | `/api/products` | 🔓 | List/browse (query: `?search=&category=&page=`) |
-| GET | `/api/products/:id` | 🔓 | Product detail |
-| POST | `/api/products` | 🏪 | Seller creates a product (owner = token seller) |
-| PUT | `/api/products/:id` | 🏪 | Seller updates **own** product (BR-4) |
-| DELETE | `/api/products/:id` | 🏪 | Seller deletes/deactivates **own** product (BR-4) |
-| GET | `/api/seller/products` | 🏪 | Seller's own product list (S5) |
+| GET | `/api/products` | 🔓 | Daftar/jelajah (kueri: `?search=&category=&page=`) |
+| GET | `/api/products/:id` | 🔓 | Detail produk |
+| POST | `/api/products` | 🏪 | Penjual membuat produk (pemilik = penjual pada token) |
+| PUT | `/api/products/:id` | 🏪 | Penjual memperbarui produk **miliknya sendiri** (BR-4) |
+| DELETE | `/api/products/:id` | 🏪 | Penjual menghapus/menonaktifkan produk **miliknya sendiri** (BR-4) |
+| GET | `/api/seller/products` | 🏪 | Daftar produk milik penjual (S5) |
 
-### 6.3 Cart — **gated (customer only)**
+### 6.3 Keranjang — **dibatasi (khusus pelanggan)**
 
-| Method | Path | Access | Purpose |
+| Metode | Path | Akses | Tujuan |
 |--------|------|:------:|---------|
-| GET | `/api/cart` | 🧑 | View current cart |
-| POST | `/api/cart/items` | 🧑 | Add item `{ productId, quantity }` (gated — BR-2) |
-| PUT | `/api/cart/items/:productId` | 🧑 | Update quantity |
-| DELETE | `/api/cart/items/:productId` | 🧑 | Remove line |
+| GET | `/api/cart` | 🧑 | Lihat keranjang saat ini |
+| POST | `/api/cart/items` | 🧑 | Tambahkan item `{ productId, quantity }` (dibatasi — BR-2) |
+| PUT | `/api/cart/items/:productId` | 🧑 | Perbarui kuantitas |
+| DELETE | `/api/cart/items/:productId` | 🧑 | Hapus baris |
 
-> All cart routes return **`401`** without a valid customer token. This is the enforcement point for the "gated add-to-cart" requirement (BR-2) — the UI redirect to login is convenience only.
+> Semua rute keranjang mengembalikan **`401`** tanpa token pelanggan yang valid. Inilah titik pemberlakuan persyaratan "gated add-to-cart" (BR-2) — pengalihan UI ke login hanya merupakan kemudahan.
 
-### 6.4 Orders
+### 6.4 Pesanan
 
-| Method | Path | Access | Purpose |
+| Metode | Path | Akses | Tujuan |
 |--------|------|:------:|---------|
-| POST | `/api/orders` | 🧑 | Checkout: **group cart by seller → create one order per seller**, atomically decrement stock and empty cart in a MongoDB transaction (C6, BR-7). Returns the created order(s). |
-| GET | `/api/orders` | 🧑 | Customer's order history — all their per-seller orders (C7) |
-| GET | `/api/orders/:id` | 🧑 | Customer order detail |
-| GET | `/api/seller/orders` | 🏪 | Seller's orders — `find({ seller: me })` (S6) |
-| PUT | `/api/seller/orders/:id/status` | 🏪 | Advance order status per lifecycle (S7, BR-3) |
+| POST | `/api/orders` | 🧑 | Checkout: **kelompokkan keranjang berdasarkan penjual → buat satu pesanan per penjual**, kurangi stok secara atomik dan kosongkan keranjang dalam transaksi MongoDB (C6, BR-7). Kembalikan pesanan yang dibuat. |
+| GET | `/api/orders` | 🧑 | Riwayat pesanan pelanggan — semua pesanan per penjual miliknya (C7) |
+| GET | `/api/orders/:id` | 🧑 | Detail pesanan pelanggan |
+| GET | `/api/seller/orders` | 🏪 | Pesanan penjual — `find({ seller: me })` (S6) |
+| PUT | `/api/seller/orders/:id/status` | 🏪 | Majukan status pesanan sesuai siklus (S7, BR-3) |
 
-### 6.5 Response & error conventions
+### 6.5 Konvensi respons & kesalahan
 
-- **Success:** `2xx` with `{ success: true, message, data }`.
-- **Validation error:** `400` with `{ error, details: [...] }`.
-- **Auth:** `401` (missing/invalid token) vs `403` (valid token, wrong type/owner).
-- **Not found:** `404`. **Server:** `500` (never leak stack traces to clients).
-- Seller order responses include `allowedTransitions`, calculated by the API from the order lifecycle; clients must not infer allowed status changes locally.
+- **Berhasil:** `2xx` dengan `{ success: true, message, data }`.
+- **Kesalahan validasi:** `400` dengan `{ error, details: [...] }`.
+- **Autentikasi:** `401` (token tidak ada/tidak valid) vs `403` (token valid, jenis/pemilik salah).
+- **Tidak ditemukan:** `404`. **Server:** `500` (jangan pernah membocorkan stack trace kepada klien).
+- Respons pesanan penjual menyertakan `allowedTransitions`, yang dihitung oleh API berdasarkan siklus pesanan; klien tidak boleh menyimpulkan perubahan status yang diizinkan secara lokal.
 
 ---
 
-## 7. Authentication & Authorization
+## 7. Autentikasi & Otorisasi
 
 ```mermaid
 flowchart LR
-    L["POST /auth/{type}/login"] --> V{verify bcrypt}
-    V -- ok --> J["sign JWT<br/>{ sub, type, exp }"]
-    J --> C["client stores token<br/>web: memory/localStorage<br/>mobile: SecureStore/AsyncStorage"]
-    C --> R["request + Bearer token"]
+    L["POST /auth/{type}/login"] --> V{verifikasi bcrypt}
+    V -- ok --> J["tanda tangani JWT<br/>{ sub, type, exp }"]
+    J --> C["klien menyimpan token<br/>web: memory/localStorage<br/>mobile: SecureStore/AsyncStorage"]
+    C --> R["permintaan + token Bearer"]
     R --> M{authMiddleware}
-    M -- "no/expired token" --> E401[401]
-    M -- "wrong type/owner" --> E403[403]
-    M -- ok --> H[route handler]
+    M -- "token tidak ada/kedaluwarsa" --> E401[401]
+    M -- "jenis/pemilik salah" --> E403[403]
+    M -- ok --> H[handler rute]
 ```
 
-- **JWT payload:** `{ sub: <userId>, type: 'customer' | 'seller', iat, exp }`. Signed with `JWT_SECRET`; expiry (e.g. 7d) configurable.
-- **Passwords:** hashed with **bcrypt** (never stored or logged in plaintext).
+- **Payload JWT:** `{ sub: <userId>, type: 'customer' | 'seller', iat, exp }`. Ditandatangani dengan `JWT_SECRET`; masa berlaku (misalnya 7d) dapat dikonfigurasi.
+- **Password:** di-hash dengan **bcrypt** (tidak pernah disimpan atau dicatat dalam teks biasa).
 - **Middleware:**
-  - `requireAuth` — verifies token, attaches `req.user`.
-  - `requireCustomer` / `requireSeller` — assert `req.user.type` (enforces BR-1).
-  - `requireOwnership` — for product/order writes, assert the resource belongs to `req.user.sub` (enforces BR-4).
-- **Protected routes (Soal 4):** cart, checkout, order history, profile (customer); all product-write and order routes (seller).
-- **Token storage on web:** customer and seller sessions use separate localStorage keys. Future mobile clients should use Expo **SecureStore** (preferred) or **AsyncStorage**.
+  - `requireAuth` — memverifikasi token dan memasang `req.user`.
+  - `requireCustomer` / `requireSeller` — memastikan `req.user.type` (memberlakukan BR-1).
+  - `requireOwnership` — untuk penulisan produk/pesanan, memastikan sumber daya dimiliki `req.user.sub` (memberlakukan BR-4).
+- **Rute terlindungi (Soal 4):** keranjang, checkout, riwayat pesanan, profil (pelanggan); semua rute penulisan produk dan pesanan (penjual).
+- **Penyimpanan token di web:** sesi pelanggan dan penjual menggunakan kunci localStorage yang terpisah. Klien mobile mendatang harus menggunakan Expo **SecureStore** (diutamakan) atau **AsyncStorage**.
 
 ---
 
-## 8. Frontend Architecture
+## 8. Arsitektur Frontend
 
-### 8.1 Customer / Seller Web (React + Vite)
+### 8.1 Web Pelanggan / Penjual (React + Vite)
 
 - **Routing (React Router):**
-  - Customer routes: `/`, `/products`, `/products/:id`, `/cart` 🔒, `/checkout` 🔒, `/orders` 🔒, `/login`, `/register`.
-  - Seller routes: `/seller/login`, `/seller/register`, `/seller/dashboard` 🔒, `/seller/products` 🔒, `/seller/products/new` 🔒, `/seller/products/:id/edit` 🔒, `/seller/orders` 🔒.
-  - 🔒 routes are wrapped in a `<ProtectedRoute>` that checks the token and redirects to login (mirroring the API gate).
-- **State:** lightweight — React Context for auth/session + cart; component/local state elsewhere. (Redux is optional and not required.)
-- **API layer:** customer and seller Axios clients share the same env-driven base URL while reading separate browser session keys; request interceptors attach the Bearer token and response interceptors handle `401`.
-- **Responsive (Soal 1):** Flexbox/CSS Grid; product grid collapses to a single column on narrow viewports; no fixed pixel-width layouts.
+  - Rute pelanggan: `/`, `/products`, `/products/:id`, `/cart` 🔒, `/checkout` 🔒, `/orders` 🔒, `/login`, `/register`.
+  - Rute penjual: `/seller/login`, `/seller/register`, `/seller/dashboard` 🔒, `/seller/products` 🔒, `/seller/products/new` 🔒, `/seller/products/:id/edit` 🔒, `/seller/orders` 🔒.
+  - Rute 🔒 dibungkus dalam `<ProtectedRoute>` yang memeriksa token dan mengarahkan ke login (meniru pembatasan API).
+- **State:** ringan — React Context untuk autentikasi/sesi + keranjang; state komponen/lokal digunakan di tempat lain. (Redux bersifat opsional dan tidak wajib.)
+- **Lapisan API:** klien Axios pelanggan dan penjual menggunakan URL dasar yang sama dari env, sambil membaca kunci sesi browser yang terpisah; interceptor permintaan memasang token Bearer dan interceptor respons menangani `401`.
+- **Responsif (Soal 1):** Flexbox/CSS Grid; grid produk menjadi satu kolom pada viewport sempit; tidak ada tata letak dengan lebar piksel tetap.
 
-### 8.2 Future Customer / Seller Mobile (React Native + Expo)
+### 8.2 Mobile Pelanggan / Penjual Mendatang (React Native + Expo)
 
-- **Navigation:** React Navigation (stack + tabs).
-  - Customer mobile screens: Product List, Product Detail, Login/Register, Order History (+ optional Cart/Checkout).
-  - Seller mobile screens: Login/Register, My Products, Add/Edit Product, Orders Inbox, Update Status.
-- **API integration:** reuse the same REST paths and Axios pattern; base URL points at the deployed API.
-- **Token persistence:** use SecureStore/AsyncStorage; an auth bootstrap on launch restores the session.
+- **Navigasi:** React Navigation (stack + tabs).
+  - Layar mobile pelanggan: Daftar Produk, Detail Produk, Masuk/Daftar, Riwayat Pesanan (+ Keranjang/Checkout opsional).
+  - Layar mobile penjual: Masuk/Daftar, Produk Saya, Tambah/Edit Produk, Kotak Masuk Pesanan, Perbarui Status.
+- **Integrasi API:** gunakan kembali path REST dan pola Axios yang sama; URL dasar mengarah ke API yang di-deploy.
+- **Persistensi token:** gunakan SecureStore/AsyncStorage; bootstrap autentikasi saat peluncuran memulihkan sesi.
 
-### 8.3 Shared client conventions
+### 8.3 Konvensi klien bersama
 
-- Environment-driven API base URL (`VITE_API_URL`; future Expo clients can use `extra.apiUrl`) — never hard-code the deployed host.
-- Explicit **loading / empty / error** states on every data screen.
-- Client-side validation is for UX only; the API is the source of truth.
+- Base URL API yang digerakkan oleh environment (`VITE_API_URL`; klien Expo mendatang dapat menggunakan `extra.apiUrl`) — jangan pernah menulis host yang di-deploy secara hard-code.
+- Keadaan **memuat / kosong / kesalahan** yang eksplisit pada setiap layar data.
+- Validasi di sisi klien hanya untuk UX; API adalah sumber kebenaran.
 
 ---
 
-## 9. Security & Validation
+## 9. Keamanan & Validasi
 
-| Concern | Requirement |
+| Aspek | Persyaratan |
 |---------|-------------|
-| Passwords | bcrypt hashed; minimum length enforced at registration |
-| Secrets | `JWT_SECRET`, DB URI, etc. in environment variables — never committed |
-| Input validation | Server-side on every write (express-validator/zod): types, required fields, price/stock ≥ 0, enum status values |
-| AuthZ | Route-level type checks (customer vs seller) + ownership checks (BR-1, BR-4) |
-| Gated cart | Enforced server-side (`401`) independent of UI (BR-2) |
-| CORS | Restrict to the configured web origins using `CORS_ORIGINS` |
-| Rate limiting | Basic `express-rate-limit` on auth endpoints to blunt brute force |
-| Transport | HTTPS everywhere (provided by Vercel/Render) |
-| Error hygiene | No stack traces or secrets in client-facing error responses |
+| Password | Di-hash dengan bcrypt; panjang minimum diberlakukan saat pendaftaran |
+| Rahasia | `JWT_SECRET`, URI DB, dll. dalam variabel lingkungan — tidak pernah di-commit |
+| Validasi input | Di sisi server pada setiap penulisan (express-validator/zod): tipe, field wajib, price/stock ≥ 0, nilai status enum |
+| AuthZ | Pemeriksaan jenis di tingkat rute (pelanggan vs penjual) + pemeriksaan kepemilikan (BR-1, BR-4) |
+| Keranjang terbatas | Diberlakukan di sisi server (`401`) secara independen dari UI (BR-2) |
+| CORS | Batasi ke origin web yang dikonfigurasi menggunakan `CORS_ORIGINS` |
+| Pembatasan laju | `express-rate-limit` dasar pada endpoint autentikasi untuk meredam brute force |
+| Transport | HTTPS di semua tempat (disediakan oleh Vercel/Render) |
+| Kebersihan kesalahan | Tidak ada stack trace atau rahasia dalam respons kesalahan yang ditujukan kepada klien |
 
 ---
 
-## 10. Deployment Architecture (Soal 5)
+## 10. Arsitektur Deployment (Soal 5)
 
 ```mermaid
 flowchart LR
     subgraph Vercel
-        VW["web<br/>unified React + Vite app"]
+        VW["web<br/>aplikasi React + Vite<br/>terpadu"]
     end
     R["Render<br/>Express API"]
     A[("MongoDB Atlas")]
@@ -387,29 +387,29 @@ flowchart LR
     R --> A
 ```
 
-| Artifact | Platform | Output |
+| Artefak | Platform | Keluaran |
 |----------|----------|--------|
-| Unified Web | Vercel (or Netlify) | Deferred public URL |
-| API | Render (or Heroku) | Deferred public HTTPS base URL |
-| Database | MongoDB Atlas | Connection URI (env) |
-| Mobile (both) | Expo | Deferred |
+| Web Terpadu | Vercel (atau Netlify) | URL publik ditunda |
+| API | Render (atau Heroku) | Base URL HTTPS publik ditunda |
+| Database | MongoDB Atlas | URI koneksi (env) |
+| Mobile (keduanya) | Expo | Ditunda |
 
-- **Env-var promotion:** each deployment target holds its own env vars (API holds `MONGODB_URI`, `JWT_SECRET`; web holds `VITE_API_URL` and optional `VITE_GA_ID`).
-- **Current milestone:** keep the documented local API and web builds working before choosing a public hosting target.
-
----
-
-## 11. Monitoring & Analytics (Soal 5)
-
-- **Google Analytics** (GA4) is integrated once on the unified **web** client.
-- Track at minimum: page/route views and a key conversion event (e.g. `add_to_cart`, `checkout_completed`).
-- Keep the measurement id / app id in env vars; disable in local dev to avoid noise.
+- **Promosi env-var:** setiap target deployment memiliki env var sendiri (API menyimpan `MONGODB_URI`, `JWT_SECRET`; web menyimpan `VITE_API_URL` dan `VITE_GA_ID` opsional).
+- **Milestone saat ini:** pastikan build API dan web lokal yang didokumentasikan tetap berfungsi sebelum memilih target hosting publik.
 
 ---
 
-## 12. Local Development Setup
+## 11. Pemantauan & Analitik (Soal 5)
 
-**Prerequisites:** Node.js 22.22.0 or newer, npm/pnpm, and a MongoDB Atlas URI or local MongoDB replica set. Checkout transactions require transaction-capable MongoDB.
+- **Google Analytics** (GA4) diintegrasikan satu kali pada klien **web** terpadu.
+- Setidaknya lacak: tampilan halaman/rute dan satu event konversi utama (misalnya `add_to_cart`, `checkout_completed`).
+- Simpan measurement id / app id dalam env var; nonaktifkan saat pengembangan lokal untuk menghindari noise.
+
+---
+
+## 12. Penyiapan Pengembangan Lokal
+
+**Prasyarat:** Node.js 22.22.0 atau lebih baru, npm/pnpm, serta URI MongoDB Atlas atau replica set MongoDB lokal. Transaksi checkout memerlukan MongoDB yang mendukung transaksi.
 
 ```bash
 # 1. API
@@ -418,55 +418,55 @@ cp .env.example .env         # set MONGODB_URI, JWT_SECRET, PORT
 npm install
 npm run dev                  # http://localhost:4000
 
-# 2. Unified Customer / Seller Web
+# 2. Web Pelanggan / Penjual Terpadu
 cd ../web
 cp .env.example .env         # set VITE_API_URL=http://localhost:4000/api
 npm install
 npm run dev                  # http://localhost:5173
 
-# Or, from the repository root after installing each app's dependencies:
+# Atau, dari root repositori setelah menginstal dependensi setiap aplikasi:
 # npm install
 # npm --prefix api install
 # npm --prefix web install
-# npm run dev                  # starts API and web together
+# npm run dev                  # menjalankan API dan web bersamaan
 
-# Native mobile clients are deferred for this milestone.
+# Klien mobile native ditunda untuk milestone ini.
 ```
 
-### 12.1 Environment variables
+### 12.1 Variabel lingkungan
 
-| App | Variable | Example |
+| Aplikasi | Variabel | Contoh |
 |-----|----------|---------|
 | API | `MONGODB_URI` | `mongodb+srv://…` |
 | API | `JWT_SECRET` | `<random-long-string>` |
 | API | `PORT` | `4000` |
 | API | `CORS_ORIGINS` | `https://marketplace.example.app` |
 | Web | `VITE_API_URL` | `https://api.example.com/api` |
-| Web | `VITE_GA_ID` / LogRocket id | `G-XXXX` |
-| Mobile | `apiUrl` (future Expo `extra`) | `https://api.example.com/api` |
+| Web | `VITE_GA_ID` / id LogRocket | `G-XXXX` |
+| Mobile | `apiUrl` (Expo `extra` mendatang) | `https://api.example.com/api` |
 
 ---
 
-## 13. Requirements → Grading Rubric Mapping (Soal 1–5)
+## 13. Persyaratan → Pemetaan Rubrik Penilaian (Soal 1–5)
 
-| Soal (weight) | Topic | Technical coverage |
+| Soal (bobot) | Topik | Cakupan teknis |
 |---------------|-------|--------------------|
-| **Soal 1 (20%)** | Frontend React Web | §8.1 — React Router, `ProtectedRoute`, responsive Flexbox/Grid, home/list/detail/cart/checkout |
-| **Soal 2 (20%)** | Backend Node/Express + MongoDB | §5 data model, §6 REST API, §9 validation — CRUD for products & users with input validation |
-| **Soal 3 (20%)** | Mobile React Native | Deferred milestone; §6 REST contracts remain reusable by future Expo apps |
-| **Soal 4 (20%)** | Data Integration & Auth | §7 JWT auth, protected routes, ownership/type guards; §8.3 Axios/Fetch integration |
-| **Soal 5 (15%)** | Deployment & Monitoring | §11 Google Analytics is implemented; §10 public deployment is deferred |
+| **Soal 1 (20%)** | Frontend Web React | §8.1 — React Router, `ProtectedRoute`, Flexbox/Grid responsif, beranda/daftar/detail/keranjang/checkout |
+| **Soal 2 (20%)** | Backend Node/Express + MongoDB | model data §5, REST API §6, validasi §9 — CRUD produk & pengguna dengan validasi input |
+| **Soal 3 (20%)** | Mobile React Native | Milestone ditunda; kontrak REST §6 tetap dapat digunakan kembali oleh aplikasi Expo mendatang |
+| **Soal 4 (20%)** | Integrasi Data & Autentikasi | autentikasi JWT §7, rute terlindungi, penjaga kepemilikan/jenis; integrasi Axios/Fetch §8.3 |
+| **Soal 5 (15%)** | Deployment & Pemantauan | Google Analytics §11 diimplementasikan; deployment publik §10 ditunda |
 
 ---
 
-## 14. Open Technical Decisions (to confirm during build)
+## 14. Keputusan Teknis Terbuka (untuk dikonfirmasi selama pembangunan)
 
-| # | Decision | Default taken |
+| # | Keputusan | Default yang dipilih |
 |---|----------|---------------|
-| D1 | Pagination strategy for product list | Simple `page`/`limit` query params |
-| D2 | Payment simulation timing | Implemented: checkout creates each order as `PAID` because payment is simulated |
-| D3 | State management on web | React Context (no Redux) unless complexity grows |
-| D4 | Multi-seller cart at checkout | Split into **one order per seller** (grouped by `seller`); one combined payment, per-seller orders & statuses (BR-7) |
-| D5 | Image handling | `imageUrl` strings only; no upload service |
+| D1 | Strategi paginasi untuk daftar produk | Parameter kueri `page`/`limit` sederhana |
+| D2 | Waktu simulasi pembayaran | Diimplementasikan: checkout membuat setiap pesanan sebagai `PAID` karena pembayaran disimulasikan |
+| D3 | Manajemen state di web | React Context (tanpa Redux) kecuali kompleksitas meningkat |
+| D4 | Keranjang multi-penjual saat checkout | Dipecah menjadi **satu pesanan per penjual** (dikelompokkan berdasarkan `seller`); satu pembayaran gabungan, pesanan & status per penjual (BR-7) |
+| D5 | Penanganan gambar | Hanya string `imageUrl`; tanpa layanan unggah |
 
-> These are recorded so they can be revisited without reopening the whole design. Changing one should be a local edit here, not a redesign.
+> Keputusan ini dicatat agar dapat ditinjau kembali tanpa membuka ulang keseluruhan desain. Perubahan pada salah satunya seharusnya cukup berupa pengeditan lokal di sini, bukan desain ulang.

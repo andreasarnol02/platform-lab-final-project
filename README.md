@@ -1,18 +1,18 @@
 # Marketplace
 
-A full-stack multi-vendor marketplace for customers and sellers. The project includes a React/Vite web client, a Node.js/Express API, MongoDB persistence, simulated checkout, seller product management, and seller order fulfillment.
+Marketplace full-stack multi-penjual untuk pelanggan dan penjual. Proyek ini mencakup klien web React/Vite, API Node.js/Express, persistensi MongoDB, checkout simulasi, pengelolaan produk penjual, dan pemenuhan pesanan penjual.
 
-## Requirements
+## Persyaratan
 
-- Node.js 22.22.0 or newer
-- MongoDB with transaction support
+- Node.js 22.22.0 atau lebih baru
+- MongoDB dengan dukungan transaksi
 - npm
 
-Checkout uses a MongoDB transaction to reserve stock, create one order per seller, and clear the cart atomically. Use MongoDB Atlas or a local replica set for checkout testing; a standalone MongoDB server does not support transactions.
+Checkout menggunakan transaksi MongoDB untuk mencadangkan stok, membuat satu pesanan per penjual, dan mengosongkan keranjang secara atomik. Gunakan MongoDB Atlas atau replica set lokal untuk pengujian checkout; server MongoDB standalone tidak mendukung transaksi.
 
-## Quick Start
+## Mulai Cepat
 
-Install the root workspace runner and both application dependencies:
+Instal runner workspace root dan dependensi kedua aplikasi:
 
 ```bash
 npm install
@@ -20,77 +20,77 @@ npm --prefix api install
 npm --prefix web install
 ```
 
-Create local environment files:
+Buat file environment lokal:
 
 ```bash
 cp api/.env.example api/.env
 cp web/.env.example web/.env
 ```
 
-Set `MONGODB_URI` and a long random `JWT_SECRET` in `api/.env`. Generate a secret with:
+Atur `MONGODB_URI` dan `JWT_SECRET` yang panjang serta acak di `api/.env`. Buat rahasia dengan:
 
 ```bash
 openssl rand -hex 32
 ```
 
-Start the API and web client together from the repository root:
+Jalankan API dan klien web secara bersamaan dari root repositori:
 
 ```bash
 npm run dev
 ```
 
-The services are available at:
+Layanan tersedia di:
 
-- Web client: `http://localhost:5173`
+- Klien web: `http://localhost:5173`
 - API: `http://localhost:4000`
-- API health check: `http://localhost:4000/`
+- Pemeriksaan kesehatan API: `http://localhost:4000/`
 
-The API also allows the local web origin `http://127.0.0.1:5173` by default.
+API juga secara default mengizinkan origin web lokal `http://127.0.0.1:5173`.
 
-## Commands
+## Perintah
 
-| Command | Purpose |
+| Perintah | Tujuan |
 | --- | --- |
-| `npm run dev` | Start the API and web client together |
-| `npm test` | Run API and web Jest tests |
-| `npm run build` | Create the web production build |
-| `npm --prefix api test` | Run API tests only |
-| `npm --prefix web test` | Run web tests only |
-| `npm --prefix web run test:e2e` | Run Playwright browser tests |
-| `npm --prefix web run preview` | Preview the web production build |
+| `npm run dev` | Jalankan API dan klien web secara bersamaan |
+| `npm test` | Jalankan pengujian Jest API dan web |
+| `npm run build` | Buat build produksi web |
+| `npm --prefix api test` | Jalankan hanya pengujian API |
+| `npm --prefix web test` | Jalankan hanya pengujian web |
+| `npm --prefix web run test:e2e` | Jalankan pengujian browser Playwright |
+| `npm --prefix web run preview` | Pratinjau build produksi web |
 
-## Application Areas
+## Area Aplikasi
 
-Customer routes include:
+Rute pelanggan meliputi:
 
-- `/` - storefront home
-- `/products` - searchable product catalog
-- `/products/:id` - product details
-- `/cart` - shopping cart
-- `/checkout` - simulated checkout
-- `/orders` - order history
-- `/profile` - customer profile
+- `/` - beranda toko
+- `/products` - katalog produk yang dapat dicari
+- `/products/:id` - detail produk
+- `/cart` - keranjang belanja
+- `/checkout` - checkout simulasi
+- `/orders` - riwayat pesanan
+- `/profile` - profil pelanggan
 
-Seller routes include:
+Rute penjual meliputi:
 
-- `/seller/login` and `/seller/register` - seller authentication
-- `/seller/dashboard` - seller overview
-- `/seller/products` - owned product management
-- `/seller/orders` - incoming orders and fulfillment status
+- `/seller/login` dan `/seller/register` - autentikasi penjual
+- `/seller/dashboard` - ringkasan penjual
+- `/seller/products` - pengelolaan produk milik penjual
+- `/seller/orders` - pesanan masuk dan status pemenuhan
 
-The API enforces authentication, customer/seller role separation, and resource ownership. Checkout creates one order per seller and immediately marks payment as simulated and confirmed.
+API menegakkan autentikasi, pemisahan peran pelanggan/penjual, dan kepemilikan sumber daya. Checkout membuat satu pesanan per penjual dan langsung menandai pembayaran sebagai simulasi dan terkonfirmasi.
 
-## Project Structure
+## Struktur Proyek
 
 ```text
-api/                 Express API, models, routes, middleware, and tests
-web/                 React/Vite customer and seller applications
-docs/                Product, technical, and design documentation
-.github/workflows/   CI checks
-package.json         Root development, test, and build commands
+api/                 Express API, model, rute, middleware, dan pengujian
+web/                 Aplikasi React/Vite untuk pelanggan dan penjual
+docs/                Dokumentasi produk, teknis, dan desain
+.github/workflows/   Pemeriksaan CI
+package.json         Perintah pengembangan, pengujian, dan build root
 ```
 
-Detailed service documentation is available in:
+Dokumentasi layanan selengkapnya tersedia di:
 
 - [`api/README.md`](api/README.md)
 - [`web/README.md`](web/README.md)
@@ -98,9 +98,9 @@ Detailed service documentation is available in:
 - [`docs/technical-requirements.md`](docs/technical-requirements.md)
 - [`docs/design-system.md`](docs/design-system.md)
 
-## Verification
+## Verifikasi
 
-The CI workflow runs API tests, frontend tests and build, Playwright browser tests, dependency audits, CodeQL analysis, and secret scanning. Local verification can be run with:
+Alur kerja CI menjalankan pengujian API, pengujian frontend dan build, pengujian browser Playwright, audit dependensi, analisis CodeQL, serta pemindaian rahasia. Verifikasi lokal dapat dijalankan dengan:
 
 ```bash
 npm test
@@ -108,4 +108,4 @@ npm run build
 npm --prefix web run test:e2e
 ```
 
-Never commit `.env` files or real credentials. Only `.env.example` files belong in version control.
+Jangan pernah melakukan commit terhadap file `.env` atau kredensial nyata. Hanya file `.env.example` yang boleh berada dalam kontrol versi.
