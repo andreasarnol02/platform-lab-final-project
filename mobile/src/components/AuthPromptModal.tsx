@@ -14,7 +14,9 @@ interface AuthPromptModalProps {
   visible: boolean;
   onClose: () => void;
   onLogin?: () => void;
+  onLoginPress?: () => void;
   onRegister?: () => void;
+  onRegisterPress?: () => void;
   actionText?: string;
 }
 
@@ -22,10 +24,14 @@ export const AuthPromptModal = ({
   visible,
   onClose,
   onLogin,
+  onLoginPress,
   onRegister,
+  onRegisterPress,
   actionText = "Fitur Terproteksi",
 }: AuthPromptModalProps) => {
   const insets = useSafeAreaInsets();
+  const handleLogin = onLogin || onLoginPress;
+  const handleRegister = onRegister || onRegisterPress;
 
   return (
     <Modal
@@ -62,7 +68,7 @@ export const AuthPromptModal = ({
               activeOpacity={0.85}
               onPress={() => {
                 onClose();
-                if (onLogin) onLogin();
+                if (handleLogin) handleLogin();
               }}
             >
               <Text style={commonStyles.buttonPrimaryText}>Masuk ke Akun</Text>
@@ -73,7 +79,7 @@ export const AuthPromptModal = ({
               activeOpacity={0.85}
               onPress={() => {
                 onClose();
-                if (onRegister) onRegister();
+                if (handleRegister) handleRegister();
               }}
             >
               <Text style={styles.secondaryButtonText}>Daftar Akun Baru</Text>

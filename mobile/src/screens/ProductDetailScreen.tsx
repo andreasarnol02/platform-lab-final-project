@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -6,13 +6,24 @@ import {
   Image,
   TouchableOpacity,
   StyleSheet,
+  Alert,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { RouteProp } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
+import {
+  ArrowLeft,
+  ShoppingBag,
+  Store,
+  Zap,
+  ShieldCheck,
+  Tag,
+  CheckCircle2,
+} from "lucide-react-native";
 import { RootStackParamList } from "../navigation/types";
 import { AuthPromptModal } from "../components/AuthPromptModal";
-import { colors, spacing, borderRadius, typography, commonStyles, shadows } from "../theme";
+import { colors, spacing, borderRadius, commonStyles, shadows } from "../theme";
+import { addToCart, getCart } from "../utils/cartStorage";
 
 type ProductDetailScreenRouteProp = RouteProp<
   RootStackParamList,
@@ -36,48 +47,115 @@ export const ProductDetailScreen = ({
   const { product } = route.params;
   const [authModalVisible, setAuthModalVisible] = useState(false);
   const [gatedActionName, setGatedActionName] = useState("");
+  const [cartCount, setCartCount] = useState(0);
 
-  const handleProtectedAction = (actionName: string) => {
-    setGatedActionName(actionName);
-    setAuthModalVisible(true);
+  useEffect(() => {
+    const fetchCartCount = async () => {
+      try {
+        const cart = await getCart();
+        const total = cart.items ? cart.items.length : 0;
+        setCartCount(total);
+      } catch (error) {
+        console.error("Error fetching cart count:", error);
+      }
+    };
+    fetchCartCount();
+  }, []);
+
+  const handleAddToCartPress = async () => {
+    try {
+      const updatedCart = await addToCart(product, 1);
+      const total = updatedCart.items ? updatedCart.items.length : 0;
+      setCartCount(total);
+      Alert.alert(
+        "Berhasil Ditambahkan",
+        `"${product.name}" telah dimasukkan ke keranjang belanja Anda.`,
+        [
+          { text: "Lanjut Belanja", style: "cancel" },
+          {
+            text: "Lihat Keranjang",
+            onPress: () => navigation.navigate("Cart"),
+          },
+        ]
+      );
+    } catch (error) {
+      console.error("Error adding to cart:", error);
+    }
+  };
+
+  const handleBuyNowPress = async () => {
+    try {
+      await addToCart(product, 1);
+      navigation.navigate("Cart");
+    } catch (error) {
+      console.error("Error buying product:", error);
+    }
   };
 
   return (
     <View style={styles.mainContainer}>
+      {/* Top Header Bar with Safe Area Top Padding */}
+      <View
+        style={[
+          styles.topHeader,
+          { paddingTop: Math.max(insets.top + spacing.xs, spacing.md) },
+        ]}
+      >
+        <TouchableOpacity
+          style={styles.backButtonPill}
+          activeOpacity={0.7}
+          onPress={() => navigation.goBack()}
+        >
+          <ArrowLeft size={18} color={colors.storefront.ink} />
+          <Text style={styles.backButtonText}>Katalog</Text>
+        </TouchableOpacity>
+
+        <Text style={styles.headerTitle} numberOfLines={1}>
+          Detail Produk
+        </Text>
+
+        <TouchableOpacity
+          style={styles.cartIconButton}
+          activeOpacity={0.7}
+          onPress={() => navigation.navigate("Cart")}
+        >
+          <ShoppingBag size={20} color={colors.storefront.ink} />
+          {cartCount > 0 && (
+            <View style={styles.cartBadge}>
+              <Text style={styles.cartBadgeText}>
+                {cartCount > 99 ? "99+" : cartCount}
+              </Text>
+            </View>
+          )}
+        </TouchableOpacity>
+      </View>
+
       <ScrollView
         contentContainerStyle={[
           styles.scrollContent,
           {
-            paddingTop: Math.max(insets.top + spacing.xs, spacing.md),
-            paddingBottom: insets.bottom + 90,
+            paddingBottom: insets.bottom + 100,
           },
         ]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Floating Top Back Bar */}
-        <TouchableOpacity
-          style={styles.backButtonPill}
-          activeOpacity={0.8}
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={styles.backButtonText}>← Kembali ke Katalog</Text>
-        </TouchableOpacity>
-
         {/* Product Hero Image */}
         <View style={styles.imageContainer}>
           <Image source={{ uri: product.imageUrl }} style={styles.productImage} />
         </View>
 
         {/* Product Meta Info Card */}
-        <View style={commonStyles.card}>
+        <View style={styles.metaCard}>
           <View style={styles.categoryBadgeRow}>
             <View style={styles.categoryBadge}>
+              <Tag size={12} color={colors.storefront.muted} style={{ marginRight: 4 }} />
               <Text style={styles.categoryBadgeText}>{product.category}</Text>
             </View>
 
-            <View style={commonStyles.badgeGreen}>
-              <Text style={commonStyles.badgeGreenText}>
-                Stok: {product.stock} unit
+            <View style={styles.stockBadge}>
+              <CheckCircle2 size={12} color={colors.storefront.greenDark} style={{ marginRight: 4 }} />
+              <Text style={styles.stockBadgeText}>
+                Stok Tersedia: {product.stock}
               </Text>
             </View>
           </View>
@@ -88,11 +166,13 @@ export const ProductDetailScreen = ({
             Rp {product.price.toLocaleString("id-ID")}
           </Text>
 
-          <View style={commonStyles.divider} />
+          <View style={styles.divider} />
 
-          {/* Seller Store Badge */}
+          {/* Seller Store Card */}
           <View style={styles.sellerCard}>
-            <Text style={styles.storeIcon}>🏬</Text>
+            <View style={styles.storeIconContainer}>
+              <Store size={22} color={colors.storefront.greenDark} />
+            </View>
             <View style={styles.sellerInfo}>
               <Text style={styles.sellerLabel}>Penjual Terdaftar Marketplace</Text>
               <Text style={styles.sellerStoreName}>{product.sellerStoreName}</Text>
@@ -101,11 +181,14 @@ export const ProductDetailScreen = ({
         </View>
 
         {/* Product Description Card */}
-        <View style={commonStyles.card}>
-          <Text style={styles.sectionHeaderTitle}>Deskripsi Produk</Text>
+        <View style={styles.descriptionCard}>
+          <View style={styles.descHeaderRow}>
+            <ShieldCheck size={18} color={colors.storefront.greenDark} style={{ marginRight: 6 }} />
+            <Text style={styles.sectionHeaderTitle}>Deskripsi Produk & Jaminan</Text>
+          </View>
           <Text style={styles.descriptionText}>
             {product.description ||
-              "Produk berkualitas tinggi yang dijual langsung oleh toko resmi di platform Storefront Marketplace. Garansi kualitas dan transaksi aman."}
+              "Produk berkualitas tinggi yang dijual langsung oleh toko resmi di platform Storefront Marketplace. Garansi kualitas, keaslian barang, dan transaksi aman."}
           </Text>
         </View>
       </ScrollView>
@@ -120,20 +203,18 @@ export const ProductDetailScreen = ({
         <TouchableOpacity
           style={styles.cartButton}
           activeOpacity={0.85}
-          onPress={() =>
-            handleProtectedAction(`Tambah "${product.name}" ke Keranjang`)
-          }
+          onPress={handleAddToCartPress}
         >
+          <ShoppingBag size={18} color={colors.storefront.greenDark} style={{ marginRight: 6 }} />
           <Text style={styles.cartButtonText}>+ Keranjang</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.buyNowButton}
           activeOpacity={0.85}
-          onPress={() =>
-            handleProtectedAction(`Beli Sekarang "${product.name}"`)
-          }
+          onPress={handleBuyNowPress}
         >
+          <Zap size={18} color={colors.white} style={{ marginRight: 6 }} />
           <Text style={styles.buyNowButtonText}>Beli Sekarang</Text>
         </TouchableOpacity>
       </View>
@@ -143,6 +224,14 @@ export const ProductDetailScreen = ({
         visible={authModalVisible}
         onClose={() => setAuthModalVisible(false)}
         actionText={gatedActionName}
+        onLoginPress={() => {
+          setAuthModalVisible(false);
+          navigation.navigate("Login");
+        }}
+        onRegisterPress={() => {
+          setAuthModalVisible(false);
+          navigation.navigate("Register");
+        }}
       />
     </View>
   );
@@ -153,32 +242,80 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.storefront.bg,
   },
-  scrollContent: {
+  topHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: spacing.xl,
+    paddingBottom: spacing.md,
+    backgroundColor: colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.storefront.lineLight,
+    ...shadows.subtle,
+    zIndex: 10,
   },
   backButtonPill: {
-    alignSelf: "flex-start",
-    backgroundColor: colors.white,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.storefront.bg,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs + 2,
     borderRadius: borderRadius.full,
     borderWidth: 1,
     borderColor: colors.storefront.line,
-    marginBottom: spacing.md,
-    ...shadows.subtle,
+    gap: 4,
   },
   backButtonText: {
-    color: colors.storefront.greenDark,
-    fontWeight: "800",
+    color: colors.storefront.ink,
+    fontWeight: "700",
     fontSize: 12,
+  },
+  headerTitle: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: colors.storefront.ink,
+    flex: 1,
+    textAlign: "center",
+    marginHorizontal: spacing.xs,
+  },
+  cartIconButton: {
+    position: "relative",
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: colors.storefront.bg,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: colors.storefront.line,
+  },
+  cartBadge: {
+    position: "absolute",
+    top: -4,
+    right: -4,
+    backgroundColor: colors.storefront.danger,
+    borderRadius: 9,
+    minWidth: 18,
+    height: 18,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 3,
+  },
+  cartBadgeText: {
+    color: colors.white,
+    fontSize: 10,
+    fontWeight: "900",
+  },
+  scrollContent: {
+    padding: spacing.xl,
   },
   imageContainer: {
     width: "100%",
-    height: 230,
+    height: 240,
     borderRadius: borderRadius.lg,
     overflow: "hidden",
     backgroundColor: colors.white,
-    marginBottom: spacing.md,
+    marginBottom: spacing.lg,
     borderWidth: 1,
     borderColor: colors.storefront.line,
     ...shadows.card,
@@ -187,6 +324,15 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
   },
+  metaCard: {
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
+    marginBottom: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.storefront.line,
+    ...shadows.card,
+  },
   categoryBadgeRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -194,9 +340,11 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   categoryBadge: {
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: colors.gray100,
     paddingHorizontal: spacing.sm + 2,
-    paddingVertical: 2,
+    paddingVertical: 3,
     borderRadius: borderRadius.xs,
   },
   categoryBadgeText: {
@@ -204,6 +352,19 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "800",
     textTransform: "uppercase",
+  },
+  stockBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.storefront.greenLight,
+    paddingHorizontal: spacing.sm + 2,
+    paddingVertical: 3,
+    borderRadius: borderRadius.xs,
+  },
+  stockBadgeText: {
+    color: colors.storefront.greenDark,
+    fontSize: 11,
+    fontWeight: "800",
   },
   productTitle: {
     fontSize: 19,
@@ -218,6 +379,11 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     color: colors.storefront.greenDark,
   },
+  divider: {
+    height: 1,
+    backgroundColor: colors.storefront.lineLight,
+    marginVertical: spacing.md,
+  },
   sellerCard: {
     flexDirection: "row",
     alignItems: "center",
@@ -225,10 +391,15 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     borderRadius: borderRadius.md,
     borderWidth: 1,
-    borderColor: colors.storefront.line,
+    borderColor: colors.storefront.greenLight,
   },
-  storeIcon: {
-    fontSize: 22,
+  storeIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.white,
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: spacing.md,
   },
   sellerInfo: {
@@ -241,20 +412,33 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
   sellerStoreName: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: "800",
     color: colors.storefront.ink,
+  },
+  descriptionCard: {
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
+    marginBottom: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.storefront.line,
+    ...shadows.card,
+  },
+  descHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: spacing.xs,
   },
   sectionHeaderTitle: {
     fontSize: 14,
     fontWeight: "800",
     color: colors.storefront.ink,
-    marginBottom: spacing.xs,
   },
   descriptionText: {
     fontSize: 13,
     color: colors.storefront.inkSoft,
-    lineHeight: 20,
+    lineHeight: 21,
   },
   bottomActionBar: {
     position: "absolute",
@@ -267,15 +451,16 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: spacing.md,
     borderTopWidth: 1,
-    borderTopColor: colors.storefront.line,
+    borderTopColor: colors.storefront.lineLight,
     ...shadows.floating,
   },
   cartButton: {
     flex: 1,
-    backgroundColor: colors.storefront.greenLight,
-    paddingVertical: spacing.md - 2,
-    borderRadius: borderRadius.md,
+    flexDirection: "row",
     alignItems: "center",
+    backgroundColor: colors.storefront.greenLight,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.md,
     justifyContent: "center",
   },
   cartButtonText: {
@@ -285,10 +470,11 @@ const styles = StyleSheet.create({
   },
   buyNowButton: {
     flex: 1,
-    backgroundColor: colors.storefront.green,
-    paddingVertical: spacing.md - 2,
-    borderRadius: borderRadius.md,
+    flexDirection: "row",
     alignItems: "center",
+    backgroundColor: colors.storefront.green,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.md,
     justifyContent: "center",
     ...shadows.button,
   },
