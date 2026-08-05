@@ -27,6 +27,7 @@ import {
 import { RootStackParamList } from "../navigation/types";
 import { Product } from "../types";
 import { AuthPromptModal } from "../components/AuthPromptModal";
+import { AddToCartSuccessModal } from "../components/AddToCartSuccessModal";
 import { colors, spacing, borderRadius, typography, shadows } from "../theme";
 import { getProducts } from "../utils/productStorage";
 import { getCart, addToCart } from "../utils/cartStorage";
@@ -53,6 +54,9 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
   const [cartCount, setCartCount] = useState(0);
   const [customerToken, setCustomerTokenState] = useState<string | null>(null);
   const [customerName, setCustomerName] = useState<string | null>(null);
+
+  const [addedProduct, setAddedProduct] = useState<Product | null>(null);
+  const [cartModalVisible, setCartModalVisible] = useState(false);
 
   const loadInitialData = async () => {
     try {
@@ -94,10 +98,8 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
       const updatedCart = await addToCart(product, 1);
       const totalItemsCount = updatedCart.items ? updatedCart.items.length : 0;
       setCartCount(totalItemsCount);
-      Alert.alert(
-        "Keranjang",
-        `"${product.name}" berhasil ditambahkan ke keranjang!`,
-      );
+      setAddedProduct(product);
+      setCartModalVisible(true);
     } catch (error) {
       console.error("Error adding to cart:", error);
     }
@@ -355,6 +357,14 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
           setAuthModalVisible(false);
           navigation.navigate("Register");
         }}
+      />
+
+      {/* Add To Cart Success Sheet */}
+      <AddToCartSuccessModal
+        visible={cartModalVisible}
+        product={addedProduct}
+        onClose={() => setCartModalVisible(false)}
+        onViewCart={() => navigation.navigate("Cart")}
       />
     </View>
   );
