@@ -1,5 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  // Explicitly list all source file paths for Windows fast-glob compatibility
   content: [
     "./App.tsx",
     "./App.jsx",
@@ -15,24 +16,22 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Flat hyphenated Tokopedia design tokens
-        "tokopedia-green": "#00A86B",
-        "tokopedia-green-dark": "#007D5A",
-        "tokopedia-green-light": "#E3F6ED",
-        "tokopedia-ink": "#172522",
-        "tokopedia-ink-soft": "#50645B",
-        "tokopedia-muted": "#71817C",
-        "tokopedia-line": "#E5ECE8",
-        "tokopedia-bg": "#F5F9F7",
-        "tokopedia-danger": "#D32F2F",
+        // Flat hyphenated Storefront design tokens
+        "storefront-green": "#00A86B",
+        "storefront-green-dark": "#007D5A",
+        "storefront-green-light": "#E3F6ED",
+        "storefront-ink": "#172522",
+        "storefront-ink-soft": "#50645B",
+        "storefront-muted": "#71817C",
+        "storefront-line": "#E5ECE8",
+        "storefront-bg": "#F5F9F7",
+        "storefront-danger": "#D32F2F",
 
-        // Nested Tokopedia structure fallback
-        tokopedia: {
-          green: {
-            DEFAULT: "#00A86B",
-            dark: "#007D5A",
-            light: "#E3F6ED",
-          },
+        // Nested Storefront structure fallback
+        storefront: {
+          green: "#00A86B",
+          greenDark: "#007D5A",
+          greenLight: "#E3F6ED",
           ink: {
             DEFAULT: "#172522",
             soft: "#50645B",

@@ -8,7 +8,30 @@ export const STORAGE_KEYS = {
   USER_ROLE: "@marketplace_user_role",
   CUSTOMER_USER_DATA: "@marketplace_customer_user_data",
   SELLER_USER_DATA: "@marketplace_seller_user_data",
+  HAS_SEEN_ONBOARDING: "@marketplace_has_seen_onboarding",
 } as const;
+
+/** Onboarding Persistence Helper */
+export const setHasSeenOnboarding = async (seen: boolean): Promise<void> => {
+  try {
+    await AsyncStorage.setItem(
+      STORAGE_KEYS.HAS_SEEN_ONBOARDING,
+      JSON.stringify(seen)
+    );
+  } catch (error) {
+    console.error("Error setting onboarding seen status:", error);
+  }
+};
+
+export const getHasSeenOnboarding = async (): Promise<boolean> => {
+  try {
+    const val = await AsyncStorage.getItem(STORAGE_KEYS.HAS_SEEN_ONBOARDING);
+    return val ? JSON.parse(val) === true : false;
+  } catch (error) {
+    console.error("Error getting onboarding seen status:", error);
+    return false;
+  }
+};
 
 /** Customer Token Management */
 export const setCustomerToken = async (token: string): Promise<void> => {
@@ -141,6 +164,7 @@ export const clearAllAuthSessions = async (): Promise<void> => {
       STORAGE_KEYS.USER_ROLE,
       STORAGE_KEYS.CUSTOMER_USER_DATA,
       STORAGE_KEYS.SELLER_USER_DATA,
+      STORAGE_KEYS.HAS_SEEN_ONBOARDING,
     ]);
   } catch (error) {
     console.error("Error clearing all auth sessions:", error);

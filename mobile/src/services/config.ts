@@ -20,7 +20,7 @@ export const CONFIG: AppConfig = {
   ENABLE_ONBOARDING: true,
   USE_MOCK_DATA: true,
   API_BASE_URL: process.env.EXPO_PUBLIC_API_URL || "http://10.0.2.2:5000/api",
-  APP_NAME: "Tokopedia Marketplace Mobile",
+  APP_NAME: "Storefront Marketplace Mobile",
   VERSION: "1.0.0",
 };
 
