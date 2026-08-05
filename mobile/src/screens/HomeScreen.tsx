@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -9,14 +9,28 @@ import {
   StyleSheet,
   FlatList,
   Dimensions,
+  Alert,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StackNavigationProp } from "@react-navigation/stack";
+import {
+  ShoppingBag,
+  ClipboardList,
+  User,
+  Search,
+  X,
+  Store,
+  Plus,
+  Truck,
+  Sparkles,
+} from "lucide-react-native";
 import { RootStackParamList } from "../navigation/types";
-import { MOCK_PRODUCTS } from "../data/mockData";
 import { Product } from "../types";
 import { AuthPromptModal } from "../components/AuthPromptModal";
 import { colors, spacing, borderRadius, typography, shadows } from "../theme";
+import { getProducts } from "../utils/productStorage";
+import { getCart, addToCart } from "../utils/cartStorage";
+import { getCustomerToken, getCustomerData } from "../utils/storage";
 
 type HomeScreenNavigationProp = StackNavigationProp<RootStackParamList, "Home">;
 
@@ -30,12 +44,43 @@ const cardWidth = (width - spacing.xl * 2 - spacing.md) / 2;
 
 export const HomeScreen = ({ navigation }: HomeScreenProps) => {
   const insets = useSafeAreaInsets();
+  const [products, setProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Semua");
   const [authModalVisible, setAuthModalVisible] = useState(false);
   const [gatedActionName, setGatedActionName] = useState("");
 
-  const filteredProducts = MOCK_PRODUCTS.filter((product) => {
+  const [cartCount, setCartCount] = useState(0);
+  const [customerToken, setCustomerTokenState] = useState<string | null>(null);
+  const [customerName, setCustomerName] = useState<string | null>(null);
+
+  const loadInitialData = async () => {
+    try {
+      const prodList = await getProducts();
+      const cart = await getCart();
+      const token = await getCustomerToken();
+      const user = await getCustomerData();
+
+      setProducts(prodList);
+      setCustomerTokenState(token);
+      if (user) setCustomerName(user.name);
+
+      const totalItemsCount = cart.items ? cart.items.length : 0;
+      setCartCount(totalItemsCount);
+    } catch (error) {
+      console.error("Error loading home data:", error);
+    }
+  };
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener("focus", () => {
+      loadInitialData();
+    });
+    loadInitialData();
+    return unsubscribe;
+  }, [navigation]);
+
+  const filteredProducts = products.filter((product) => {
     const matchesSearch =
       product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       product.sellerStoreName.toLowerCase().includes(searchQuery.toLowerCase());
@@ -44,21 +89,30 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
     return matchesSearch && matchesCategory;
   });
 
-  const handleProtectedAction = (actionName: string) => {
-    setGatedActionName(actionName);
-    setAuthModalVisible(true);
+  const handleAddToCart = async (product: Product) => {
+    try {
+      const updatedCart = await addToCart(product, 1);
+      const totalItemsCount = updatedCart.items ? updatedCart.items.length : 0;
+      setCartCount(totalItemsCount);
+      Alert.alert(
+        "Keranjang",
+        `"${product.name}" berhasil ditambahkan ke keranjang!`,
+      );
+    } catch (error) {
+      console.error("Error adding to cart:", error);
+    }
   };
 
   const renderProductItem = ({ item }: { item: Product }) => (
     <TouchableOpacity
       style={styles.productCard}
-      activeOpacity={0.88}
+      activeOpacity={0.9}
       onPress={() => navigation.navigate("ProductDetail", { product: item })}
     >
       <View style={styles.imageWrapper}>
         <Image source={{ uri: item.imageUrl }} style={styles.productImage} />
-        <View style={styles.categoryBadgeOverlay}>
-          <Text style={styles.categoryBadgeText}>{item.category}</Text>
+        <View style={styles.cardCategoryTag}>
+          <Text style={styles.cardCategoryTagText}>{item.category}</Text>
         </View>
       </View>
 
@@ -67,13 +121,18 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
           {item.name}
         </Text>
 
-        <Text style={typography.price}>
+        <Text style={styles.productPrice}>
           Rp {item.price.toLocaleString("id-ID")}
         </Text>
 
         <View style={styles.sellerRow}>
+          <Store
+            size={13}
+            color={colors.storefront.greenDark}
+            style={{ marginRight: 4 }}
+          />
           <Text style={styles.sellerName} numberOfLines={1}>
-            🏬 {item.sellerStoreName}
+            {item.sellerStoreName}
           </Text>
         </View>
 
@@ -83,14 +142,15 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
           </View>
 
           <TouchableOpacity
-            style={styles.quickAddButton}
+            style={styles.addToCartPill}
             activeOpacity={0.8}
             onPress={(e) => {
               e.stopPropagation();
-              handleProtectedAction(`Tambah "${item.name}" ke Keranjang`);
+              handleAddToCart(item);
             }}
           >
-            <Text style={styles.quickAddButtonText}>+</Text>
+            <Plus size={14} color={colors.white} style={{ marginRight: 2 }} />
+            <Text style={styles.addToCartPillText}>Beli</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -99,7 +159,7 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
 
   return (
     <View style={styles.mainContainer}>
-      {/* Sticky Header with Safe Top Padding */}
+      {/* Sticky Header with Dynamic Safe Area Top Padding */}
       <View
         style={[
           styles.stickyHeader,
@@ -112,14 +172,68 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
             <Text style={styles.brandSubtitle}>ETALASE MARKETPLACE</Text>
           </View>
 
-          <View style={styles.guestModePill}>
-            <Text style={styles.guestModePillText}>Guest Mode 👁️</Text>
+          {/* Action Header Icons (Cart, Orders, Auth) */}
+          <View style={styles.headerActions}>
+            {/* Orders History Icon */}
+            <TouchableOpacity
+              style={styles.iconButton}
+              onPress={() => navigation.navigate("OrderHistory")}
+              activeOpacity={0.7}
+            >
+              <ClipboardList size={18} color={colors.storefront.ink} />
+            </TouchableOpacity>
+
+            {/* Cart Icon with Counter Badge */}
+            <TouchableOpacity
+              style={styles.iconButton}
+              onPress={() => navigation.navigate("Cart")}
+              activeOpacity={0.7}
+            >
+              <ShoppingBag size={18} color={colors.storefront.ink} />
+              {cartCount > 0 && (
+                <View style={styles.badgeCount}>
+                  <Text style={styles.badgeCountText}>
+                    {cartCount > 99 ? "99+" : cartCount}
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
+
+            {/* Profile / Auth Button */}
+            {customerToken ? (
+              <TouchableOpacity
+                style={styles.userProfilePill}
+                onPress={() => navigation.navigate("OrderHistory")}
+                activeOpacity={0.85}
+              >
+                <User
+                  size={14}
+                  color={colors.storefront.greenDark}
+                  style={{ marginRight: 4 }}
+                />
+                <Text style={styles.userProfileText}>
+                  {customerName ? customerName.split(" ")[0] : "Saya"}
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={styles.loginPill}
+                onPress={() => navigation.navigate("Login")}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.loginPillText}>Masuk</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 
         {/* Real-time Search Input */}
         <View style={styles.searchContainer}>
-          <Text style={styles.searchIcon}>🔍</Text>
+          <Search
+            size={16}
+            color={colors.storefront.muted}
+            style={{ marginRight: spacing.xs }}
+          />
           <TextInput
             style={styles.searchInput}
             placeholder="Cari produk atau nama toko penjual..."
@@ -129,7 +243,7 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
           />
           {searchQuery !== "" && (
             <TouchableOpacity onPress={() => setSearchQuery("")}>
-              <Text style={styles.clearIcon}>✕</Text>
+              <X size={16} color={colors.storefront.muted} />
             </TouchableOpacity>
           )}
         </View>
@@ -178,9 +292,12 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
         {/* Promo Hero Banner */}
         <View style={styles.bannerCard}>
           <View style={styles.bannerTag}>
-            <Text style={styles.bannerTagText}>Jaminan Bebas Ongkir 🚚</Text>
+            <Truck size={12} color={colors.white} style={{ marginRight: 4 }} />
+            <Text style={styles.bannerTagText}>Jaminan Bebas Ongkir</Text>
           </View>
-          <Text style={styles.bannerTitle}>Produk Pilihan dari Penjual Resmi</Text>
+          <Text style={styles.bannerTitle}>
+            Produk Pilihan dari Penjual Resmi
+          </Text>
           <Text style={styles.bannerSubtitle}>
             Transaksi terverifikasi dengan jaminan kualitas Storefront Green.
           </Text>
@@ -188,9 +305,11 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
 
         {/* Section Header */}
         <View style={styles.sectionHeader}>
-          <Text style={typography.sectionTitle}>
-            Katalog Produk ({filteredProducts.length})
-          </Text>
+          <View style={styles.sectionTitleRow}>
+            <Text style={typography.sectionTitle}>
+              Katalog Produk ({filteredProducts.length})
+            </Text>
+          </View>
           {selectedCategory !== "Semua" && (
             <Text style={styles.activeCategoryLabel}>
               Kategori: {selectedCategory}
@@ -201,7 +320,11 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
         {/* Grid Catalog or Empty State */}
         {filteredProducts.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyIcon}>🔍</Text>
+            <Search
+              size={36}
+              color={colors.storefront.muted}
+              style={{ marginBottom: spacing.sm }}
+            />
             <Text style={styles.emptyTitle}>Produk Tidak Ditemukan</Text>
             <Text style={typography.caption}>
               Coba gunakan kata kunci lain atau pilih kategori berbeda.
@@ -224,6 +347,14 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
         visible={authModalVisible}
         onClose={() => setAuthModalVisible(false)}
         actionText={gatedActionName}
+        onLoginPress={() => {
+          setAuthModalVisible(false);
+          navigation.navigate("Login");
+        }}
+        onRegisterPress={() => {
+          setAuthModalVisible(false);
+          navigation.navigate("Register");
+        }}
       />
     </View>
   );
@@ -239,7 +370,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
     paddingBottom: spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: colors.storefront.line,
+    borderBottomColor: colors.storefront.lineLight,
     ...shadows.subtle,
     zIndex: 10,
   },
@@ -262,16 +393,64 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
     marginTop: -2,
   },
-  guestModePill: {
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  iconButton: {
+    position: "relative",
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: colors.storefront.bg,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: colors.storefront.line,
+  },
+  badgeCount: {
+    position: "absolute",
+    top: -4,
+    right: -4,
+    backgroundColor: colors.storefront.danger,
+    borderRadius: 9,
+    minWidth: 18,
+    height: 18,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 3,
+  },
+  badgeCountText: {
+    color: colors.white,
+    fontSize: 10,
+    fontWeight: "900",
+  },
+  userProfilePill: {
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: colors.storefront.greenLight,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
     borderRadius: borderRadius.full,
+    borderWidth: 1,
+    borderColor: colors.storefront.greenLight,
   },
-  guestModePillText: {
+  userProfileText: {
     color: colors.storefront.greenDark,
     fontWeight: "800",
-    fontSize: 11,
+    fontSize: 12,
+  },
+  loginPill: {
+    backgroundColor: colors.storefront.green,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.full,
+  },
+  loginPillText: {
+    color: colors.white,
+    fontWeight: "800",
+    fontSize: 12,
   },
   searchContainer: {
     flexDirection: "row",
@@ -283,20 +462,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.storefront.line,
   },
-  searchIcon: {
-    fontSize: 14,
-    marginRight: spacing.xs,
-  },
   searchInput: {
     flex: 1,
     fontSize: 13,
     color: colors.storefront.ink,
     paddingVertical: spacing.xs,
-  },
-  clearIcon: {
-    fontSize: 14,
-    color: colors.storefront.muted,
-    padding: spacing.xs,
   },
   scrollContent: {
     paddingHorizontal: spacing.xl,
@@ -338,6 +508,8 @@ const styles = StyleSheet.create({
     ...shadows.card,
   },
   bannerTag: {
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: "rgba(255, 255, 255, 0.15)",
     paddingHorizontal: spacing.sm + 2,
     paddingVertical: spacing.xs - 1,
@@ -368,6 +540,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: spacing.md,
   },
+  sectionTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
   activeCategoryLabel: {
     fontSize: 11,
     fontWeight: "700",
@@ -380,7 +556,7 @@ const styles = StyleSheet.create({
   productCard: {
     width: cardWidth,
     backgroundColor: colors.white,
-    borderRadius: borderRadius.md,
+    borderRadius: borderRadius.lg,
     borderWidth: 1,
     borderColor: colors.storefront.line,
     overflow: "hidden",
@@ -389,85 +565,99 @@ const styles = StyleSheet.create({
   imageWrapper: {
     position: "relative",
     width: "100%",
-    height: 125,
-    backgroundColor: colors.gray100,
+    height: 135,
+    backgroundColor: colors.storefront.bg,
   },
   productImage: {
     width: "100%",
     height: "100%",
   },
-  categoryBadgeOverlay: {
+  cardCategoryTag: {
     position: "absolute",
-    top: spacing.xs,
-    left: spacing.xs,
-    backgroundColor: "rgba(15, 23, 21, 0.75)",
-    paddingHorizontal: spacing.xs + 2,
-    paddingVertical: 2,
+    top: spacing.xs + 2,
+    left: spacing.xs + 2,
+    backgroundColor: "rgba(255, 255, 255, 0.92)",
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 3,
     borderRadius: borderRadius.xs,
+    borderWidth: 1,
+    borderColor: colors.storefront.lineLight,
   },
-  categoryBadgeText: {
-    color: colors.white,
+  cardCategoryTagText: {
+    color: colors.storefront.inkSoft,
     fontSize: 9,
     fontWeight: "800",
     textTransform: "uppercase",
+    letterSpacing: 0.3,
   },
   productDetails: {
-    padding: spacing.sm,
+    padding: spacing.md,
   },
   productName: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: "700",
     color: colors.storefront.ink,
-    lineHeight: 16,
+    lineHeight: 18,
     marginBottom: spacing.xs,
-    height: 32,
+    minHeight: 36,
+    letterSpacing: -0.2,
+  },
+  productPrice: {
+    fontSize: 15,
+    fontWeight: "900",
+    color: colors.storefront.greenDark,
+    marginBottom: spacing.xs,
+    letterSpacing: -0.4,
   },
   sellerRow: {
-    marginBottom: spacing.xs,
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: spacing.sm,
   },
   sellerName: {
-    fontSize: 10,
-    color: colors.storefront.muted,
+    fontSize: 11,
+    fontWeight: "600",
+    color: colors.storefront.inkSoft,
+    flex: 1,
   },
   cardFooterRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginTop: 2,
+    paddingTop: spacing.xs,
+    borderTopWidth: 1,
+    borderTopColor: colors.storefront.lineLight,
   },
   stockPill: {
-    backgroundColor: colors.storefront.greenLight,
+    backgroundColor: colors.storefront.greenSubtle,
     paddingHorizontal: spacing.xs + 2,
-    paddingVertical: 2,
+    paddingVertical: 3,
     borderRadius: borderRadius.xs,
+    borderWidth: 1,
+    borderColor: colors.storefront.greenLight,
   },
   stockPillText: {
     fontSize: 10,
     fontWeight: "700",
     color: colors.storefront.greenDark,
   },
-  quickAddButton: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: colors.storefront.green,
-    justifyContent: "center",
+  addToCartPill: {
+    flexDirection: "row",
     alignItems: "center",
+    backgroundColor: colors.storefront.green,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 5,
+    borderRadius: borderRadius.sm,
     ...shadows.button,
   },
-  quickAddButtonText: {
+  addToCartPillText: {
     color: colors.white,
-    fontSize: 16,
+    fontSize: 11,
     fontWeight: "800",
-    marginTop: -2,
   },
   emptyContainer: {
     alignItems: "center",
     paddingVertical: spacing.xxl,
-  },
-  emptyIcon: {
-    fontSize: 36,
-    marginBottom: spacing.sm,
   },
   emptyTitle: {
     fontSize: 15,

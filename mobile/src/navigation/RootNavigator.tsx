@@ -12,6 +12,10 @@ import { RootStackParamList } from "./types";
 import { OnboardingScreen } from "../screens/OnboardingScreen";
 import { HomeScreen } from "../screens/HomeScreen";
 import { ProductDetailScreen } from "../screens/ProductDetailScreen";
+import { LoginScreen } from "../screens/LoginScreen";
+import { RegisterScreen } from "../screens/RegisterScreen";
+import { CartScreen } from "../screens/CartScreen";
+import { OrderHistoryScreen } from "../screens/OrderHistoryScreen";
 import { colors } from "../theme";
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -75,6 +79,10 @@ export const RootNavigator = () => {
         <Stack.Screen name="Onboarding" component={OnboardingScreen} />
         <Stack.Screen name="Home" component={HomeScreen} />
         <Stack.Screen name="ProductDetail" component={ProductDetailScreen} />
+        <Stack.Screen name="Login" component={LoginScreen} />
+        <Stack.Screen name="Register" component={RegisterScreen} />
+        <Stack.Screen name="Cart" component={CartScreen} />
+        <Stack.Screen name="OrderHistory" component={OrderHistoryScreen} />
       </AppStackNavigator>
     </AppNavigationContainer>
   );
