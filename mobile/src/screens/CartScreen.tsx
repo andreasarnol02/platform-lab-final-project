@@ -36,6 +36,8 @@ import {
 import { getCustomerToken, getCustomerData } from "../utils/storage";
 import { createOrdersFromCart } from "../utils/orderStorage";
 import { AuthPromptModal } from "../components/AuthPromptModal";
+import { CheckoutSuccessModal } from "../components/CheckoutSuccessModal";
+import { CheckoutConfirmModal } from "../components/CheckoutConfirmModal";
 
 type CartScreenNavigationProp = StackNavigationProp<
   RootStackParamList,
@@ -55,6 +57,11 @@ export const CartScreen: React.FC<Props> = ({ navigation }) => {
 
   // Checkout state
   const [isAuthModalVisible, setIsAuthModalVisible] = useState(false);
+  const [confirmModalVisible, setConfirmModalVisible] = useState(false);
+  const [checkoutSuccessVisible, setCheckoutSuccessVisible] = useState(false);
+  const [completedOrderCount, setCompletedOrderCount] = useState(0);
+  const [completedTotalAmount, setCompletedTotalAmount] = useState(0);
+  
   const [shippingAddress, setShippingAddress] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("Transfer Bank BCA");
   const [isSubmittingCheckout, setIsSubmittingCheckout] = useState(false);
@@ -136,41 +143,25 @@ export const CartScreen: React.FC<Props> = ({ navigation }) => {
       return;
     }
 
-    Alert.alert(
-      "Konfirmasi Checkout",
-      `Total Pembayaran: Rp ${cart.totalPrice.toLocaleString("id-ID")}\nMetode: ${paymentMethod}\n\nSesuai aturan BR-7, item akan diproses menjadi pesanan terpisah untuk setiap toko penjual. Lanjutkan pembayaran?`,
-      [
-        { text: "Batal", style: "cancel" },
-        {
-          text: "Bayar & Buat Pesanan",
-          onPress: executeCheckout,
-        },
-      ]
-    );
+    setConfirmModalVisible(true);
   };
 
   const executeCheckout = async () => {
     if (!cart) return;
     setIsSubmittingCheckout(true);
     try {
+      const checkoutTotal = cart.totalPrice;
       const newOrders = await createOrdersFromCart(
         cart,
         shippingAddress,
         paymentMethod
       );
 
-      Alert.alert(
-        "Pembayaran Berhasil!",
-        `Berhasil membuat ${newOrders.length} pesanan terpisah untuk masing-masing toko penjual (BR-7). Stok produk telah diperbarui.`,
-        [
-          {
-            text: "Lihat Riwayat Pesanan",
-            onPress: () => {
-              navigation.replace("OrderHistory");
-            },
-          },
-        ]
-      );
+      const emptyCart = await getCart();
+      setCart(emptyCart);
+      setCompletedOrderCount(newOrders.length);
+      setCompletedTotalAmount(checkoutTotal);
+      setCheckoutSuccessVisible(true);
     } catch (error: any) {
       console.error("Checkout failed:", error);
       Alert.alert(
@@ -488,6 +479,28 @@ export const CartScreen: React.FC<Props> = ({ navigation }) => {
           setIsAuthModalVisible(false);
           navigation.navigate("Register");
         }}
+      />
+
+      {/* Checkout Success Sheet */}
+      <CheckoutSuccessModal
+        visible={checkoutSuccessVisible}
+        orderCount={completedOrderCount}
+        totalAmount={completedTotalAmount}
+        onClose={() => setCheckoutSuccessVisible(false)}
+        onViewOrders={() => {
+          setCheckoutSuccessVisible(false);
+          navigation.replace("OrderHistory");
+        }}
+      />
+
+      {/* Checkout Confirm Dialog */}
+      <CheckoutConfirmModal
+        visible={confirmModalVisible}
+        cart={cart}
+        shippingAddress={shippingAddress}
+        paymentMethod={paymentMethod}
+        onClose={() => setConfirmModalVisible(false)}
+        onConfirm={executeCheckout}
       />
     </View>
   );

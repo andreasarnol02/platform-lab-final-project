@@ -22,6 +22,7 @@ import {
 } from "lucide-react-native";
 import { RootStackParamList } from "../navigation/types";
 import { AuthPromptModal } from "../components/AuthPromptModal";
+import { AddToCartSuccessModal } from "../components/AddToCartSuccessModal";
 import { colors, spacing, borderRadius, commonStyles, shadows } from "../theme";
 import { addToCart, getCart } from "../utils/cartStorage";
 
@@ -48,6 +49,7 @@ export const ProductDetailScreen = ({
   const [authModalVisible, setAuthModalVisible] = useState(false);
   const [gatedActionName, setGatedActionName] = useState("");
   const [cartCount, setCartCount] = useState(0);
+  const [cartModalVisible, setCartModalVisible] = useState(false);
 
   useEffect(() => {
     const fetchCartCount = async () => {
@@ -67,17 +69,7 @@ export const ProductDetailScreen = ({
       const updatedCart = await addToCart(product, 1);
       const total = updatedCart.items ? updatedCart.items.length : 0;
       setCartCount(total);
-      Alert.alert(
-        "Berhasil Ditambahkan",
-        `"${product.name}" telah dimasukkan ke keranjang belanja Anda.`,
-        [
-          { text: "Lanjut Belanja", style: "cancel" },
-          {
-            text: "Lihat Keranjang",
-            onPress: () => navigation.navigate("Cart"),
-          },
-        ]
-      );
+      setCartModalVisible(true);
     } catch (error) {
       console.error("Error adding to cart:", error);
     }
@@ -232,6 +224,14 @@ export const ProductDetailScreen = ({
           setAuthModalVisible(false);
           navigation.navigate("Register");
         }}
+      />
+
+      {/* Add To Cart Success Sheet */}
+      <AddToCartSuccessModal
+        visible={cartModalVisible}
+        product={product}
+        onClose={() => setCartModalVisible(false)}
+        onViewCart={() => navigation.navigate("Cart")}
       />
     </View>
   );
