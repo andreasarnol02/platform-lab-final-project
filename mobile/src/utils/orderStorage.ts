@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Order, Cart, CartItem, OrderItem } from "../types";
+import { Order, Cart, CartItem, OrderItem, OrderStatus } from "../types";
 import { MOCK_ORDERS } from "../data/mockData";
 import { getCustomerData } from "./storage";
 import { clearCart } from "./cartStorage";
@@ -7,7 +7,7 @@ import { deductProductStock } from "./productStorage";
 
 const ORDERS_STORAGE_KEY = "@marketplace_customer_orders";
 
-/** Initialize and retrieve customer orders */
+/** Initialize and retrieve all customer/seller orders */
 export const getOrders = async (): Promise<Order[]> => {
   try {
     const json = await AsyncStorage.getItem(ORDERS_STORAGE_KEY);
@@ -23,6 +23,40 @@ export const getOrders = async (): Promise<Order[]> => {
   } catch (error) {
     console.error("Error getting orders from storage:", error);
     return MOCK_ORDERS;
+  }
+};
+
+/** Get orders for a specific seller store (BR-3) */
+export const getOrdersBySeller = async (sellerId: string): Promise<Order[]> => {
+  try {
+    const allOrders = await getOrders();
+    if (!sellerId) return allOrders;
+    return allOrders.filter((order) => order.sellerId === sellerId);
+  } catch (error) {
+    console.error("Error getting seller orders:", error);
+    return [];
+  }
+};
+
+/** Update order status progression (PAID -> PROCESSED -> SHIPPED -> COMPLETED) */
+export const updateOrderStatus = async (
+  orderId: string,
+  newStatus: OrderStatus
+): Promise<Order[]> => {
+  try {
+    const allOrders = await getOrders();
+    const updatedOrders = allOrders.map((order) => {
+      if (order.id === orderId) {
+        return { ...order, status: newStatus };
+      }
+      return order;
+    });
+
+    await AsyncStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(updatedOrders));
+    return updatedOrders;
+  } catch (error) {
+    console.error("Error updating order status:", error);
+    return [];
   }
 };
 

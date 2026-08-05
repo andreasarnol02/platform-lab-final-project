@@ -17,6 +17,9 @@ import { RegisterScreen } from "../screens/RegisterScreen";
 import { CartScreen } from "../screens/CartScreen";
 import { OrderHistoryScreen } from "../screens/OrderHistoryScreen";
 import { ProfileScreen } from "../screens/ProfileScreen";
+import { SellerProductListScreen } from "../screens/SellerProductListScreen";
+import { AddEditProductScreen } from "../screens/AddEditProductScreen";
+import { SellerOrderInboxScreen } from "../screens/SellerOrderInboxScreen";
 import { colors } from "../theme";
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -85,6 +88,9 @@ export const RootNavigator = () => {
         <Stack.Screen name="Cart" component={CartScreen} />
         <Stack.Screen name="OrderHistory" component={OrderHistoryScreen} />
         <Stack.Screen name="Profile" component={ProfileScreen} />
+        <Stack.Screen name="SellerProductList" component={SellerProductListScreen} />
+        <Stack.Screen name="AddEditProduct" component={AddEditProductScreen} />
+        <Stack.Screen name="SellerOrderInbox" component={SellerOrderInboxScreen} />
       </AppStackNavigator>
     </AppNavigationContainer>
   );

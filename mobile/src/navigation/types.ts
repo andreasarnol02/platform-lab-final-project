@@ -9,4 +9,7 @@ export type RootStackParamList = {
   Cart: undefined;
   OrderHistory: undefined;
   Profile: undefined;
+  SellerProductList: { sellerId?: string } | undefined;
+  AddEditProduct: { product?: Product } | undefined;
+  SellerOrderInbox: { sellerId?: string } | undefined;
 };

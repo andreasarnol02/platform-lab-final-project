@@ -41,16 +41,19 @@ import {
   setHasSeenOnboarding,
 } from "../utils/storage";
 
+import { getProductsBySeller } from "../utils/productStorage";
+import { getOrdersBySeller } from "../utils/orderStorage";
+
 type ProfileScreenNavigationProp = StackNavigationProp<
   RootStackParamList,
   "Profile"
 >;
 
-interface ProfileScreenProps {
+interface Props {
   navigation: ProfileScreenNavigationProp;
 }
 
-export const ProfileScreen = ({ navigation }: ProfileScreenProps) => {
+export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
   const [customerToken, setCustomerTokenState] = useState<string | null>(null);
   const [customer, setCustomer] = useState<Customer | null>(null);
@@ -103,14 +106,15 @@ export const ProfileScreen = ({ navigation }: ProfileScreenProps) => {
     });
   };
 
-  // Mock Sales Stats for Seller Dashboard
-  const [salesStats] = useState<SalesStats>({
-    totalRevenue: 4850000,
-    totalOrders: 18,
-    pendingOrders: 2,
-    completedOrders: 16,
-    activeProducts: 12,
+  // Real-time Sales Stats for Seller Dashboard
+  const [salesStats, setSalesStats] = useState<SalesStats>({
+    totalRevenue: 0,
+    totalOrders: 0,
+    pendingOrders: 0,
+    completedOrders: 0,
+    activeProducts: 0,
   });
+  const [sellerLowStockCount, setSellerLowStockCount] = useState<number>(0);
 
   const loadUserData = async () => {
     try {
@@ -127,6 +131,35 @@ export const ProfileScreen = ({ navigation }: ProfileScreenProps) => {
       if (sToken && !cToken) {
         setActiveTab("seller");
       }
+
+      // Calculate real-time stats for current seller
+      const sellerId = sData?.id || "sell_001";
+      const sellerProds = await getProductsBySeller(sellerId);
+      const sellerOrders = await getOrdersBySeller(sellerId);
+
+      const totalRevenue = sellerOrders
+        .filter((o) => o.status === "PAID" || o.status === "PROCESSED" || o.status === "SHIPPED" || o.status === "COMPLETED")
+        .reduce((sum, o) => sum + o.totalPrice, 0);
+
+      const pendingOrders = sellerOrders.filter(
+        (o) => o.status === "PAID" || o.status === "PROCESSED"
+      ).length;
+
+      const completedOrders = sellerOrders.filter(
+        (o) => o.status === "COMPLETED" || o.status === "SHIPPED"
+      ).length;
+
+      const activeProducts = sellerProds.filter((p) => p.isActive).length;
+      const lowStockCount = sellerProds.filter((p) => p.stock <= 5).length;
+
+      setSalesStats({
+        totalRevenue,
+        totalOrders: sellerOrders.length,
+        pendingOrders,
+        completedOrders,
+        activeProducts,
+      });
+      setSellerLowStockCount(lowStockCount);
     } catch (error) {
       console.error("Error loading profile data:", error);
     }
@@ -381,7 +414,7 @@ export const ProfileScreen = ({ navigation }: ProfileScreenProps) => {
             </TouchableOpacity>
           </View>
         ) : (
-          /* Seller Dashboard Metrics View */
+          /* Seller Dashboard Metrics View (Step 5.2 - S8) */
           <View style={styles.sectionContainer}>
             {/* Revenue Overview Banner */}
             <View style={styles.revenueCard}>
@@ -397,39 +430,122 @@ export const ProfileScreen = ({ navigation }: ProfileScreenProps) => {
               </Text>
             </View>
 
-            {/* Stats Grid */}
+            {/* 4 Store Statistics Cards (Step 5.2) */}
             <View style={styles.statsGrid}>
+              {/* Kartu 1: Total Pendapatan / Order */}
               <View style={styles.statBox}>
                 <View style={styles.statIconRow}>
-                  <Package size={16} color={colors.storefront.greenDark} />
-                  <Text style={styles.statTitle}>Total Order</Text>
+                  <TrendingUp size={16} color={colors.storefront.greenDark} />
+                  <Text style={styles.statTitle}>Pendapatan</Text>
                 </View>
-                <Text style={styles.statNumber}>{salesStats.totalOrders}</Text>
+                <Text style={styles.statNumber}>
+                  Rp {(salesStats.totalRevenue / 1000).toFixed(0)}k
+                </Text>
               </View>
 
-              <View style={styles.statBox}>
+              {/* Kartu 2: Pesanan Masuk */}
+              <TouchableOpacity
+                style={styles.statBox}
+                activeOpacity={0.8}
+                onPress={() => navigation.navigate("SellerOrderInbox")}
+              >
                 <View style={styles.statIconRow}>
                   <Clock size={16} color={colors.status.pendingText} />
-                  <Text style={styles.statTitle}>Pesanan Pending</Text>
+                  <Text style={styles.statTitle}>Pesanan Masuk</Text>
                 </View>
-                <Text style={styles.statNumber}>{salesStats.pendingOrders}</Text>
-              </View>
+                <Text style={[styles.statNumber, { color: colors.status.pendingText }]}>
+                  {salesStats.pendingOrders}
+                </Text>
+              </TouchableOpacity>
 
-              <View style={styles.statBox}>
-                <View style={styles.statIconRow}>
-                  <CheckCircle2 size={16} color={colors.status.completedText} />
-                  <Text style={styles.statTitle}>Pesanan Selesai</Text>
-                </View>
-                <Text style={styles.statNumber}>{salesStats.completedOrders}</Text>
-              </View>
-
-              <View style={styles.statBox}>
+              {/* Kartu 3: Produk Aktif */}
+              <TouchableOpacity
+                style={styles.statBox}
+                activeOpacity={0.8}
+                onPress={() => navigation.navigate("SellerProductList")}
+              >
                 <View style={styles.statIconRow}>
                   <Store size={16} color={colors.storefront.greenDark} />
                   <Text style={styles.statTitle}>Produk Aktif</Text>
                 </View>
                 <Text style={styles.statNumber}>{salesStats.activeProducts}</Text>
-              </View>
+              </TouchableOpacity>
+
+              {/* Kartu 4: Alert Stok Habis / Menipis */}
+              <TouchableOpacity
+                style={styles.statBox}
+                activeOpacity={0.8}
+                onPress={() => navigation.navigate("SellerProductList")}
+              >
+                <View style={styles.statIconRow}>
+                  <Package size={16} color={colors.status.cancelledText} />
+                  <Text style={styles.statTitle}>Alert Stok</Text>
+                </View>
+                <Text style={[styles.statNumber, { color: colors.status.cancelledText }]}>
+                  {sellerLowStockCount}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Quick Action Shortcuts (S2, S3, S6) */}
+            <Text style={styles.sectionTitle}>Aksi Operasional Penjual</Text>
+            <View style={styles.quickActionsGroup}>
+              <TouchableOpacity
+                style={styles.actionMenuCard}
+                activeOpacity={0.8}
+                onPress={() => navigation.navigate("SellerOrderInbox")}
+              >
+                <View style={styles.actionMenuLeft}>
+                  <View style={[styles.actionIconBox, { backgroundColor: "#E0F2FE" }]}>
+                    <ClipboardList size={18} color="#0284C7" />
+                  </View>
+                  <View>
+                    <Text style={styles.actionMenuTitle}>Kotak Masuk Pesanan</Text>
+                    <Text style={styles.actionMenuSubtitle}>
+                      Proses pesanan masuk & perbarui status kirim
+                    </Text>
+                  </View>
+                </View>
+                <ChevronRight size={18} color={colors.storefront.muted} />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.actionMenuCard}
+                activeOpacity={0.8}
+                onPress={() => navigation.navigate("SellerProductList")}
+              >
+                <View style={styles.actionMenuLeft}>
+                  <View style={[styles.actionIconBox, { backgroundColor: colors.storefront.greenLight }]}>
+                    <Store size={18} color={colors.storefront.greenDark} />
+                  </View>
+                  <View>
+                    <Text style={styles.actionMenuTitle}>Katalog Produk Toko</Text>
+                    <Text style={styles.actionMenuSubtitle}>
+                      Lihat, edit, atau ubah stok barang real-time
+                    </Text>
+                  </View>
+                </View>
+                <ChevronRight size={18} color={colors.storefront.muted} />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.actionMenuCard}
+                activeOpacity={0.8}
+                onPress={() => navigation.navigate("AddEditProduct")}
+              >
+                <View style={styles.actionMenuLeft}>
+                  <View style={[styles.actionIconBox, { backgroundColor: "#FEF3C7" }]}>
+                    <Package size={18} color="#D97706" />
+                  </View>
+                  <View>
+                    <Text style={styles.actionMenuTitle}>Tambah Produk Baru</Text>
+                    <Text style={styles.actionMenuSubtitle}>
+                      Buka etalase baru dan atur stok awal
+                    </Text>
+                  </View>
+                </View>
+                <ChevronRight size={18} color={colors.storefront.muted} />
+              </TouchableOpacity>
             </View>
           </View>
         )}
@@ -668,6 +784,17 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginRight: spacing.md,
+  },
+  actionIconBox: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: spacing.md,
+  },
+  quickActionsGroup: {
+    gap: spacing.sm,
   },
   actionMenuTitle: {
     fontSize: 14,
