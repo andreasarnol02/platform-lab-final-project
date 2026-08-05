@@ -1,59 +1,53 @@
 import { StyleSheet } from "react-native";
-import { colors, spacing, borderRadius } from "./tokens";
+import { colors, spacing, borderRadius, shadows } from "./tokens";
 
 /**
- * Reusable StyleSheet Presets for Tokopedia Mobile UI
+ * Storefront Green Palette Reusable StyleSheet Presets for Storefront Mobile UI
  */
 export const commonStyles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: colors.tokopedia.bg,
+    backgroundColor: colors.storefront.bg,
   },
   scrollContainer: {
-    padding: spacing.xl,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
   },
   card: {
     backgroundColor: colors.white,
-    borderRadius: borderRadius.xl,
+    borderRadius: borderRadius.lg,
     padding: spacing.lg,
-    marginBottom: spacing.lg,
+    marginBottom: spacing.md,
     borderWidth: 1,
-    borderColor: colors.tokopedia.line,
-    shadowColor: colors.tokopedia.ink,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    borderColor: colors.storefront.line,
+    ...shadows.card,
   },
   badgeGreen: {
-    backgroundColor: colors.tokopedia.greenLight,
+    backgroundColor: colors.storefront.greenLight,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
     borderRadius: borderRadius.full,
     alignSelf: "flex-start",
   },
   badgeGreenText: {
-    color: colors.tokopedia.greenDark,
+    color: colors.storefront.greenDark,
     fontWeight: "700",
-    fontSize: 12,
+    fontSize: 11,
   },
   buttonPrimary: {
-    backgroundColor: colors.tokopedia.green,
+    backgroundColor: colors.storefront.green,
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.xl,
-    borderRadius: borderRadius.lg,
+    borderRadius: borderRadius.md,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: colors.tokopedia.green,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 3,
+    ...shadows.button,
   },
   buttonPrimaryText: {
     color: colors.white,
-    fontWeight: "700",
+    fontWeight: "800",
     fontSize: 14,
+    letterSpacing: 0.2,
   },
   rowBetween: {
     flexDirection: "row",
@@ -62,7 +56,7 @@ export const commonStyles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: colors.tokopedia.line,
-    marginVertical: spacing.sm,
+    backgroundColor: colors.storefront.line,
+    marginVertical: spacing.md,
   },
 });
