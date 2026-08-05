@@ -6,10 +6,18 @@ import {
   StyleSheet,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  ShoppingBag,
+  ShieldCheck,
+  Store,
+  ArrowRight,
+  Sparkles,
+  X,
+} from "lucide-react-native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { RootStackParamList } from "../navigation/types";
 import { setHasSeenOnboarding } from "../utils/storage";
-import { colors, spacing, borderRadius, shadows, commonStyles } from "../theme";
+import { colors, spacing, borderRadius, shadows } from "../theme";
 
 type OnboardingScreenNavigationProp = StackNavigationProp<
   RootStackParamList,
@@ -22,7 +30,7 @@ interface OnboardingScreenProps {
 
 interface Slide {
   id: string;
-  icon: string;
+  renderIcon: () => React.ReactNode;
   badge: string;
   title: string;
   description: string;
@@ -31,21 +39,21 @@ interface Slide {
 const SLIDES: Slide[] = [
   {
     id: "1",
-    icon: "🛍️",
+    renderIcon: () => <ShoppingBag size={44} color={colors.storefront.greenDark} />,
     badge: "Etalase Lengkap",
     title: "Belanja Mudah & Cepat di Storefront",
     description: "Temukan ribuan produk pilihan dari penjual terpercaya dengan harga terbaik dan pengalaman belanja yang nyaman.",
   },
   {
     id: "2",
-    icon: "🛡️",
+    renderIcon: () => <ShieldCheck size={44} color={colors.storefront.greenDark} />,
     badge: "Transaksi Terjamin",
     title: "Perlindungan & Kualitas Green",
     description: "Nikmati perlindungan belanja dengan pembayaran terverifikasi dan pemantauan stok real-time langsung dari etalase.",
   },
   {
     id: "3",
-    icon: "🏪",
+    renderIcon: () => <Store size={44} color={colors.storefront.greenDark} />,
     badge: "Dua Peran Marketplace",
     title: "Belanja atau Kelola Toko Sendiri!",
     description: "Beralih peran secara bebas antara Pembeli dan Penjual untuk mengelola katalog toko serta pesanan Anda secara efisien.",
@@ -87,8 +95,8 @@ export const OnboardingScreen = ({ navigation }: OnboardingScreenProps) => {
     >
       {/* Top Header Navigation */}
       <View style={styles.topNavRow}>
-        <View style={commonStyles.badgeGreen}>
-          <Text style={commonStyles.badgeGreenText}>
+        <View style={styles.badgeStep}>
+          <Text style={styles.badgeStepText}>
             LANGKAH {currentIndex + 1} DARI {SLIDES.length}
           </Text>
         </View>
@@ -98,7 +106,8 @@ export const OnboardingScreen = ({ navigation }: OnboardingScreenProps) => {
           activeOpacity={0.7}
           onPress={handleSkip}
         >
-          <Text style={styles.skipPillText}>Skip Intro ✕</Text>
+          <Text style={styles.skipPillText}>Skip Intro</Text>
+          <X size={14} color={colors.storefront.muted} style={{ marginLeft: 4 }} />
         </TouchableOpacity>
       </View>
 
@@ -106,7 +115,7 @@ export const OnboardingScreen = ({ navigation }: OnboardingScreenProps) => {
       <View style={styles.heroCard}>
         <View style={styles.iconCircleOuter}>
           <View style={styles.iconCircleInner}>
-            <Text style={styles.iconEmoji}>{currentSlide.icon}</Text>
+            {currentSlide.renderIcon()}
           </View>
         </View>
 
@@ -136,15 +145,20 @@ export const OnboardingScreen = ({ navigation }: OnboardingScreenProps) => {
       {/* Bottom Action CTA */}
       <View style={styles.bottomCtaContainer}>
         <TouchableOpacity
-          style={commonStyles.buttonPrimary}
+          style={styles.primaryCtaButton}
           activeOpacity={0.85}
           onPress={handleNext}
         >
-          <Text style={commonStyles.buttonPrimaryText}>
+          <Text style={styles.primaryCtaText}>
             {currentIndex === SLIDES.length - 1
-              ? "Mulai Belanja Sekarang ✨"
-              : "Lanjutkan →"}
+              ? "Mulai Belanja Sekarang"
+              : "Lanjutkan"}
           </Text>
+          {currentIndex === SLIDES.length - 1 ? (
+            <Sparkles size={18} color={colors.white} style={{ marginLeft: 6 }} />
+          ) : (
+            <ArrowRight size={18} color={colors.white} style={{ marginLeft: 6 }} />
+          )}
         </TouchableOpacity>
       </View>
     </View>
@@ -163,7 +177,21 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
+  badgeStep: {
+    backgroundColor: colors.storefront.greenLight,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.full,
+  },
+  badgeStepText: {
+    color: colors.storefront.greenDark,
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 0.5,
+  },
   skipPill: {
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: colors.white,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
@@ -206,16 +234,13 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  iconEmoji: {
-    fontSize: 42,
-  },
   slideBadge: {
     backgroundColor: colors.storefront.greenSubtle,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
     borderRadius: borderRadius.full,
     borderWidth: 1,
-    borderColor: colors.storefront.line,
+    borderColor: colors.storefront.greenLight,
     marginBottom: spacing.md,
   },
   slideBadgeText: {
@@ -261,5 +286,19 @@ const styles = StyleSheet.create({
   },
   bottomCtaContainer: {
     width: "100%",
+  },
+  primaryCtaButton: {
+    flexDirection: "row",
+    backgroundColor: colors.storefront.green,
+    paddingVertical: spacing.md + 2,
+    borderRadius: borderRadius.md,
+    alignItems: "center",
+    justifyContent: "center",
+    ...shadows.button,
+  },
+  primaryCtaText: {
+    color: colors.white,
+    fontSize: 15,
+    fontWeight: "800",
   },
 });

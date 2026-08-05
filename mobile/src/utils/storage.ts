@@ -155,6 +155,28 @@ export const getSellerData = async (): Promise<Seller | null> => {
   }
 };
 
+export const clearCustomerSession = async (): Promise<void> => {
+  try {
+    await AsyncStorage.multiRemove([
+      STORAGE_KEYS.CUSTOMER_JWT_TOKEN,
+      STORAGE_KEYS.CUSTOMER_USER_DATA,
+    ]);
+  } catch (error) {
+    console.error("Error clearing customer session:", error);
+  }
+};
+
+export const clearSellerSession = async (): Promise<void> => {
+  try {
+    await AsyncStorage.multiRemove([
+      STORAGE_KEYS.SELLER_JWT_TOKEN,
+      STORAGE_KEYS.SELLER_USER_DATA,
+    ]);
+  } catch (error) {
+    console.error("Error clearing seller session:", error);
+  }
+};
+
 /** Clear All Local Auth Sessions */
 export const clearAllAuthSessions = async (): Promise<void> => {
   try {

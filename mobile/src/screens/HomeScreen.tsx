@@ -94,6 +94,12 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
   });
 
   const handleAddToCart = async (product: Product) => {
+    if (!customerToken) {
+      setGatedActionName(`Menambahkan "${product.name}" ke keranjang`);
+      setAuthModalVisible(true);
+      return;
+    }
+
     try {
       const updatedCart = await addToCart(product, 1);
       const totalItemsCount = updatedCart.items ? updatedCart.items.length : 0;
@@ -201,31 +207,24 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
               )}
             </TouchableOpacity>
 
-            {/* Profile / Auth Button */}
-            {customerToken ? (
-              <TouchableOpacity
-                style={styles.userProfilePill}
-                onPress={() => navigation.navigate("OrderHistory")}
-                activeOpacity={0.85}
-              >
-                <User
-                  size={14}
-                  color={colors.storefront.greenDark}
-                  style={{ marginRight: 4 }}
-                />
-                <Text style={styles.userProfileText}>
-                  {customerName ? customerName.split(" ")[0] : "Saya"}
-                </Text>
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity
-                style={styles.loginPill}
-                onPress={() => navigation.navigate("Login")}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.loginPillText}>Masuk</Text>
-              </TouchableOpacity>
-            )}
+            {/* Profile / Auth Icon Button */}
+            <TouchableOpacity
+              style={[
+                styles.iconButton,
+                customerToken ? styles.iconButtonActive : null,
+              ]}
+              onPress={() => navigation.navigate("Profile")}
+              activeOpacity={0.7}
+            >
+              <User
+                size={18}
+                color={
+                  customerToken
+                    ? colors.storefront.greenDark
+                    : colors.storefront.ink
+                }
+              />
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -418,6 +417,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: 1,
     borderColor: colors.storefront.line,
+  },
+  iconButtonActive: {
+    backgroundColor: colors.storefront.greenLight,
+    borderColor: colors.storefront.greenLight,
   },
   badgeCount: {
     position: "absolute",

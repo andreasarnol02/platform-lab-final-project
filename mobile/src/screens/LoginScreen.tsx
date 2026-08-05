@@ -5,19 +5,23 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   Alert,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { ArrowLeft, Eye, EyeOff, Lock, Mail, User, Store, LogIn } from "lucide-react-native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { RootStackParamList } from "../navigation/types";
+import { CustomAlertModal, ModalType } from "../components/CustomAlertModal";
 import { colors, spacing, borderRadius, shadows } from "../theme";
 import {
   setCustomerToken,
+  setSellerToken,
   setUserRole,
   setCustomerData,
+  setSellerData,
 } from "../utils/storage";
 
 type LoginScreenNavigationProp = StackNavigationProp<
@@ -30,114 +34,270 @@ interface Props {
 }
 
 export const LoginScreen: React.FC<Props> = ({ navigation }) => {
+  const insets = useSafeAreaInsets();
+  const [selectedRole, setSelectedRole] = useState<"customer" | "seller">("customer");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // Custom Alert Modal State
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    type: ModalType;
+    title: string;
+    message: string;
+    confirmText?: string;
+    onConfirm: () => void;
+  }>({
+    visible: false,
+    type: "info",
+    title: "",
+    message: "",
+    onConfirm: () => {},
+  });
+
+  const showAlert = (
+    type: ModalType,
+    title: string,
+    message: string,
+    onConfirm: () => void = () => {},
+    confirmText = "Mengerti"
+  ) => {
+    setAlertConfig({
+      visible: true,
+      type,
+      title,
+      message,
+      confirmText,
+      onConfirm,
+    });
+  };
+
   const handleLogin = async () => {
     const trimmedEmail = email.trim();
     if (!trimmedEmail) {
-      Alert.alert("Input Tidak Lengkap", "Silakan masukkan alamat email Anda.");
+      showAlert("warning", "Input Tidak Lengkap", "Silakan masukkan alamat email Anda.");
       return;
     }
     if (!trimmedEmail.includes("@") || !trimmedEmail.includes(".")) {
-      Alert.alert("Format Salah", "Masukkan alamat email yang valid.");
+      showAlert("warning", "Format Salah", "Masukkan alamat email yang valid.");
       return;
     }
     if (!password) {
-      Alert.alert("Input Tidak Lengkap", "Silakan masukkan kata sandi Anda.");
+      showAlert("warning", "Input Tidak Lengkap", "Silakan masukkan kata sandi Anda.");
       return;
     }
 
     setLoading(true);
 
     try {
-      // Simulate JWT Token Authentication
-      const mockToken = `cust_jwt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      const customerProfile = {
-        id: `cust_${Date.now()}`,
-        name: trimmedEmail.split("@")[0] || "Pelanggan",
-        email: trimmedEmail,
-        phone: "081234567890",
-        address: "Jl. Sudirman No. 45, Jakarta",
-        createdAt: new Date().toISOString(),
-      };
+      if (selectedRole === "customer") {
+        const mockToken = `cust_jwt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const customerProfile = {
+          id: `cust_${Date.now()}`,
+          name: trimmedEmail.split("@")[0] || "Pelanggan",
+          email: trimmedEmail,
+          phone: "081234567890",
+          address: "Jl. Sudirman No. 45, Jakarta",
+          createdAt: new Date().toISOString(),
+        };
 
-      await setCustomerToken(mockToken);
-      await setUserRole("customer");
-      await setCustomerData(customerProfile);
+        await setCustomerToken(mockToken);
+        await setUserRole("customer");
+        await setCustomerData(customerProfile);
 
-      Alert.alert("Berhasil Login", "Selamat datang kembali di Tokopedia Marketplace!", [
-        {
-          text: "OK",
-          onPress: () => {
+        showAlert(
+          "success",
+          "Berhasil Login Pelanggan",
+          "Selamat datang kembali di Storefront Marketplace!",
+          () => {
             if (navigation.canGoBack()) {
               navigation.goBack();
             } else {
               navigation.replace("Home");
             }
           },
-        },
-      ]);
+          "Mulai Belanja"
+        );
+      } else {
+        const mockToken = `seller_jwt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const sellerProfile = {
+          id: `seller_${Date.now()}`,
+          storeName: `${trimmedEmail.split("@")[0]} Official Store`,
+          ownerName: trimmedEmail.split("@")[0] || "Pemilik Toko",
+          email: trimmedEmail,
+          phone: "081298765432",
+          createdAt: new Date().toISOString(),
+        };
+
+        await setSellerToken(mockToken);
+        await setUserRole("seller");
+        await setSellerData(sellerProfile);
+
+        showAlert(
+          "success",
+          "Berhasil Login Penjual",
+          "Selamat datang di Dashboard Penjual Storefront!",
+          () => {
+            navigation.replace("Profile");
+          },
+          "Ke Dashboard Toko"
+        );
+      }
     } catch (error) {
       console.error("Login error:", error);
-      Alert.alert("Gagal Login", "Terjadi kesalahan saat masuk. Silakan coba lagi.");
+      showAlert("danger", "Gagal Login", "Terjadi kesalahan saat masuk. Silakan coba lagi.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.mainContainer}>
+      {/* Top Header Bar with Safe Top Padding */}
+      <View
+        style={[
+          styles.topHeader,
+          { paddingTop: Math.max(insets.top + spacing.xs, spacing.md) },
+        ]}
+      >
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backButtonPill}
+          activeOpacity={0.7}
+        >
+          <ArrowLeft size={18} color={colors.storefront.ink} />
+          <Text style={styles.backButtonText}>Kembali</Text>
+        </TouchableOpacity>
+
+        <Text style={styles.headerTitle}>
+          Masuk ({selectedRole === "seller" ? "Penjual" : "Pelanggan"})
+        </Text>
+        <View style={{ width: 70 }} />
+      </View>
+
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
       >
         <ScrollView
-          contentContainerStyle={styles.scrollContainer}
+          contentContainerStyle={[
+            styles.scrollContainer,
+            { paddingBottom: Math.max(insets.bottom + spacing.xl, spacing.xxl) },
+          ]}
           keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          {/* Top Header */}
-          <View style={styles.header}>
+          {/* User Role Segmented Selector Toggle */}
+          <View style={styles.roleToggleBar}>
             <TouchableOpacity
-              onPress={() => navigation.goBack()}
-              style={styles.backButton}
+              style={[
+                styles.roleTab,
+                selectedRole === "customer" && styles.roleTabActive,
+              ]}
+              activeOpacity={0.8}
+              onPress={() => setSelectedRole("customer")}
             >
-              <Text style={styles.backButtonText}>✕</Text>
+              <User
+                size={16}
+                color={
+                  selectedRole === "customer"
+                    ? colors.white
+                    : colors.storefront.inkSoft
+                }
+                style={{ marginRight: 6 }}
+              />
+              <Text
+                style={[
+                  styles.roleTabText,
+                  selectedRole === "customer" && styles.roleTabTextActive,
+                ]}
+              >
+                Pelanggan (Customer)
+              </Text>
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>Masuk Akun</Text>
+
+            <TouchableOpacity
+              style={[
+                styles.roleTab,
+                selectedRole === "seller" && styles.roleTabActive,
+              ]}
+              activeOpacity={0.8}
+              onPress={() => setSelectedRole("seller")}
+            >
+              <Store
+                size={16}
+                color={
+                  selectedRole === "seller"
+                    ? colors.white
+                    : colors.storefront.inkSoft
+                }
+                style={{ marginRight: 6 }}
+              />
+              <Text
+                style={[
+                  styles.roleTabText,
+                  selectedRole === "seller" && styles.roleTabTextActive,
+                ]}
+              >
+                Penjual (Seller)
+              </Text>
+            </TouchableOpacity>
           </View>
 
-          {/* Welcome Banner */}
+          {/* Welcome Banner with Lucide Hero Icon */}
           <View style={styles.welcomeSection}>
-            <Text style={styles.welcomeTitle}>Selamat Datang Pelanggan</Text>
+            <View style={styles.heroIconBadge}>
+              {selectedRole === "seller" ? (
+                <Store size={28} color={colors.storefront.greenDark} />
+              ) : (
+                <User size={28} color={colors.storefront.greenDark} />
+              )}
+            </View>
+            <Text style={styles.welcomeTitle}>
+              {selectedRole === "seller"
+                ? "Masuk Akun Penjual"
+                : "Masuk Akun Pelanggan"}
+            </Text>
             <Text style={styles.welcomeSubtitle}>
-              Masuk untuk menikmati pengalaman belanja mudah di berbagai toko marketplace.
+              {selectedRole === "seller"
+                ? "Kelola katalog toko, pantau pesanan masuk, dan analisis pendapatan."
+                : "Masuk untuk menikmati pengalaman belanja mudah di berbagai toko marketplace."}
             </Text>
           </View>
 
           {/* Form Fields */}
           <View style={styles.formCard}>
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Alamat Email</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="contoh: nama@email.com"
-                placeholderTextColor={colors.storefront.muted}
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
+              <Text style={styles.label}>
+                {selectedRole === "seller" ? "Email Toko / Penjual *" : "Alamat Email *"}
+              </Text>
+              <View style={styles.inputIconWrapper}>
+                <Mail size={16} color={colors.storefront.muted} style={styles.inputIcon} />
+                <TextInput
+                  style={styles.inputWithIcon}
+                  placeholder={
+                    selectedRole === "seller"
+                      ? "contoh: seller@store.com"
+                      : "contoh: nama@email.com"
+                  }
+                  placeholderTextColor={colors.storefront.muted}
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+              </View>
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Kata Sandi</Text>
-              <View style={styles.passwordContainer}>
+              <Text style={styles.label}>Kata Sandi *</Text>
+              <View style={styles.inputIconWrapper}>
+                <Lock size={16} color={colors.storefront.muted} style={styles.inputIcon} />
                 <TextInput
-                  style={[styles.input, { flex: 1, borderRightWidth: 0, borderTopRightRadius: 0, borderBottomRightRadius: 0 }]}
+                  style={[styles.inputWithIcon, { flex: 1 }]}
                   placeholder="Masukkan kata sandi Anda"
                   placeholderTextColor={colors.storefront.muted}
                   value={password}
@@ -148,10 +308,13 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
                 <TouchableOpacity
                   style={styles.togglePasswordButton}
                   onPress={() => setShowPassword(!showPassword)}
+                  activeOpacity={0.7}
                 >
-                  <Text style={styles.togglePasswordText}>
-                    {showPassword ? "Sembunyikan" : "Tampilkan"}
-                  </Text>
+                  {showPassword ? (
+                    <EyeOff size={18} color={colors.storefront.greenDark} />
+                  ) : (
+                    <Eye size={18} color={colors.storefront.muted} />
+                  )}
                 </TouchableOpacity>
               </View>
             </View>
@@ -160,9 +323,15 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
               style={[styles.submitButton, loading && styles.disabledButton]}
               onPress={handleLogin}
               disabled={loading}
+              activeOpacity={0.85}
             >
+              <LogIn size={18} color={colors.white} style={{ marginRight: 6 }} />
               <Text style={styles.submitButtonText}>
-                {loading ? "Memproses..." : "Masuk Sekarang"}
+                {loading
+                  ? "Memproses..."
+                  : selectedRole === "seller"
+                  ? "Masuk Sebagai Penjual"
+                  : "Masuk Sebagai Pelanggan"}
               </Text>
             </TouchableOpacity>
           </View>
@@ -171,68 +340,128 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.footerPrompt}>
             <Text style={styles.footerText}>Belum memiliki akun? </Text>
             <TouchableOpacity onPress={() => navigation.navigate("Register")}>
-              <Text style={styles.registerLink}>Daftar Sekarang</Text>
+              <Text style={styles.registerLink}>Daftar Akun Baru</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+
+      {/* Custom Alert Dialog */}
+      <CustomAlertModal
+        visible={alertConfig.visible}
+        type={alertConfig.type}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        confirmText={alertConfig.confirmText}
+        onConfirm={alertConfig.onConfirm}
+        onClose={() => setAlertConfig((prev) => ({ ...prev, visible: false }))}
+      />
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  mainContainer: {
     flex: 1,
     backgroundColor: colors.storefront.bg,
   },
-  scrollContainer: {
-    padding: spacing.xl,
-    paddingBottom: spacing.hero,
-  },
-  header: {
+  topHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: spacing.xxl,
-  },
-  backButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    justifyContent: "space-between",
+    paddingHorizontal: spacing.xl,
+    paddingBottom: spacing.md,
     backgroundColor: colors.white,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.storefront.lineLight,
     ...shadows.subtle,
+    zIndex: 10,
+  },
+  backButtonPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.storefront.bg,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs + 2,
+    borderRadius: borderRadius.full,
+    borderWidth: 1,
+    borderColor: colors.storefront.line,
+    gap: 4,
   },
   backButtonText: {
-    fontSize: 18,
-    fontWeight: "700",
     color: colors.storefront.ink,
+    fontWeight: "700",
+    fontSize: 12,
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: "800",
     color: colors.storefront.ink,
   },
+  scrollContainer: {
+    padding: spacing.xl,
+  },
+  roleToggleBar: {
+    flexDirection: "row",
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.md,
+    padding: 4,
+    marginBottom: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.storefront.line,
+  },
+  roleTab: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.sm,
+  },
+  roleTabActive: {
+    backgroundColor: colors.storefront.green,
+  },
+  roleTabText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: colors.storefront.inkSoft,
+  },
+  roleTabTextActive: {
+    color: colors.white,
+  },
   welcomeSection: {
-    marginBottom: spacing.xxl,
+    marginBottom: spacing.xl,
+  },
+  heroIconBadge: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: colors.storefront.greenLight,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.storefront.green,
   },
   welcomeTitle: {
     fontSize: 24,
     fontWeight: "900",
     color: colors.storefront.ink,
     marginBottom: spacing.xs,
+    letterSpacing: -0.4,
   },
   welcomeSubtitle: {
     fontSize: 14,
     color: colors.storefront.inkSoft,
-    lineHeight: 20,
+    lineHeight: 21,
   },
   formCard: {
     backgroundColor: colors.white,
     borderRadius: borderRadius.lg,
     padding: spacing.xl,
-    marginBottom: spacing.xxl,
+    marginBottom: spacing.xl,
+    borderWidth: 1,
+    borderColor: colors.storefront.line,
     ...shadows.card,
   },
   inputGroup: {
@@ -244,38 +473,29 @@ const styles = StyleSheet.create({
     color: colors.storefront.ink,
     marginBottom: spacing.xs,
   },
-  input: {
-    height: 48,
+  inputIconWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
     borderWidth: 1,
     borderColor: colors.storefront.line,
     borderRadius: borderRadius.md,
+    backgroundColor: colors.storefront.bg,
     paddingHorizontal: spacing.md,
+  },
+  inputIcon: {
+    marginRight: spacing.xs,
+  },
+  inputWithIcon: {
+    flex: 1,
+    height: 48,
     fontSize: 14,
     color: colors.storefront.ink,
-    backgroundColor: colors.storefront.bg,
-  },
-  passwordContainer: {
-    flexDirection: "row",
-    alignItems: "center",
   },
   togglePasswordButton: {
-    height: 48,
-    paddingHorizontal: spacing.md,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: colors.storefront.lineLight,
-    borderTopRightRadius: borderRadius.md,
-    borderBottomRightRadius: borderRadius.md,
-    borderWidth: 1,
-    borderLeftWidth: 0,
-    borderColor: colors.storefront.line,
-  },
-  togglePasswordText: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: colors.storefront.greenDark,
+    padding: spacing.xs,
   },
   submitButton: {
+    flexDirection: "row",
     height: 50,
     backgroundColor: colors.storefront.green,
     borderRadius: borderRadius.md,
@@ -289,7 +509,7 @@ const styles = StyleSheet.create({
   },
   submitButtonText: {
     color: colors.white,
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "800",
   },
   footerPrompt: {

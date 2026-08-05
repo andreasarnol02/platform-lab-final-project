@@ -38,6 +38,7 @@ import { createOrdersFromCart } from "../utils/orderStorage";
 import { AuthPromptModal } from "../components/AuthPromptModal";
 import { CheckoutSuccessModal } from "../components/CheckoutSuccessModal";
 import { CheckoutConfirmModal } from "../components/CheckoutConfirmModal";
+import { CustomAlertModal, ModalType } from "../components/CustomAlertModal";
 
 type CartScreenNavigationProp = StackNavigationProp<
   RootStackParamList,
@@ -54,6 +55,51 @@ export const CartScreen: React.FC<Props> = ({ navigation }) => {
   const [customerToken, setCustomerTokenState] = useState<string | null>(null);
   const [customerData, setCustomerDataState] = useState<Customer | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Custom Alert Modal State
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    type: ModalType;
+    title: string;
+    message: string;
+    confirmText?: string;
+    cancelText?: string;
+    onConfirm: () => void;
+    onCancel?: () => void;
+  }>({
+    visible: false,
+    type: "info",
+    title: "",
+    message: "",
+    onConfirm: () => {},
+  });
+
+  const showAlert = (
+    type: ModalType,
+    title: string,
+    message: string,
+    onConfirm: () => void = () => {},
+    confirmText = "Mengerti",
+    cancelText?: string,
+    onCancel?: () => void
+  ) => {
+    setAlertConfig({
+      visible: true,
+      type,
+      title,
+      message,
+      confirmText,
+      cancelText,
+      onConfirm: () => {
+        setAlertConfig((prev) => ({ ...prev, visible: false }));
+        onConfirm();
+      },
+      onCancel: () => {
+        setAlertConfig((prev) => ({ ...prev, visible: false }));
+        if (onCancel) onCancel();
+      },
+    });
+  };
 
   // Checkout state
   const [isAuthModalVisible, setIsAuthModalVisible] = useState(false);
@@ -112,20 +158,16 @@ export const CartScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const handleClearCart = async () => {
-    Alert.alert(
+    showAlert(
+      "warning",
       "Kosongkan Keranjang",
       "Apakah Anda yakin ingin mengosongkan seluruh isi keranjang belanja?",
-      [
-        { text: "Batal", style: "cancel" },
-        {
-          text: "Hapus Semua",
-          style: "destructive",
-          onPress: async () => {
-            const updated = await clearCart();
-            setCart(updated);
-          },
-        },
-      ]
+      async () => {
+        const updated = await clearCart();
+        setCart(updated);
+      },
+      "Hapus Semua",
+      "Batal"
     );
   };
 
@@ -136,7 +178,8 @@ export const CartScreen: React.FC<Props> = ({ navigation }) => {
     }
 
     if (!cart || cart.items.length === 0) {
-      Alert.alert(
+      showAlert(
+        "info",
         "Keranjang Kosong",
         "Silakan tambahkan produk ke keranjang terlebih dahulu."
       );
@@ -164,7 +207,8 @@ export const CartScreen: React.FC<Props> = ({ navigation }) => {
       setCheckoutSuccessVisible(true);
     } catch (error: any) {
       console.error("Checkout failed:", error);
-      Alert.alert(
+      showAlert(
+        "danger",
         "Gagal Checkout",
         error.message || "Terjadi kesalahan saat memproses transaksi."
       );
@@ -501,6 +545,19 @@ export const CartScreen: React.FC<Props> = ({ navigation }) => {
         paymentMethod={paymentMethod}
         onClose={() => setConfirmModalVisible(false)}
         onConfirm={executeCheckout}
+      />
+
+      {/* Custom Alert Dialog Modal */}
+      <CustomAlertModal
+        visible={alertConfig.visible}
+        type={alertConfig.type}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        confirmText={alertConfig.confirmText}
+        cancelText={alertConfig.cancelText}
+        onConfirm={alertConfig.onConfirm}
+        onCancel={alertConfig.onCancel}
+        onClose={() => setAlertConfig((prev) => ({ ...prev, visible: false }))}
       />
     </View>
   );
