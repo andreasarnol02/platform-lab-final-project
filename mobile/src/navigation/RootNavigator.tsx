@@ -16,6 +16,7 @@ import { LoginScreen } from "../screens/LoginScreen";
 import { RegisterScreen } from "../screens/RegisterScreen";
 import { CartScreen } from "../screens/CartScreen";
 import { OrderHistoryScreen } from "../screens/OrderHistoryScreen";
+import { ProfileScreen } from "../screens/ProfileScreen";
 import { colors } from "../theme";
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -83,6 +84,7 @@ export const RootNavigator = () => {
         <Stack.Screen name="Register" component={RegisterScreen} />
         <Stack.Screen name="Cart" component={CartScreen} />
         <Stack.Screen name="OrderHistory" component={OrderHistoryScreen} />
+        <Stack.Screen name="Profile" component={ProfileScreen} />
       </AppStackNavigator>
     </AppNavigationContainer>
   );

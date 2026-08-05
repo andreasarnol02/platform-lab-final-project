@@ -25,6 +25,7 @@ import { AuthPromptModal } from "../components/AuthPromptModal";
 import { AddToCartSuccessModal } from "../components/AddToCartSuccessModal";
 import { colors, spacing, borderRadius, commonStyles, shadows } from "../theme";
 import { addToCart, getCart } from "../utils/cartStorage";
+import { getCustomerToken } from "../utils/storage";
 
 type ProductDetailScreenRouteProp = RouteProp<
   RootStackParamList,
@@ -65,6 +66,13 @@ export const ProductDetailScreen = ({
   }, []);
 
   const handleAddToCartPress = async () => {
+    const token = await getCustomerToken();
+    if (!token) {
+      setGatedActionName(`Menambahkan "${product.name}" ke keranjang`);
+      setAuthModalVisible(true);
+      return;
+    }
+
     try {
       const updatedCart = await addToCart(product, 1);
       const total = updatedCart.items ? updatedCart.items.length : 0;
@@ -76,6 +84,13 @@ export const ProductDetailScreen = ({
   };
 
   const handleBuyNowPress = async () => {
+    const token = await getCustomerToken();
+    if (!token) {
+      setGatedActionName(`Membeli "${product.name}"`);
+      setAuthModalVisible(true);
+      return;
+    }
+
     try {
       await addToCart(product, 1);
       navigation.navigate("Cart");
