@@ -1,10 +1,20 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Cart, CartItem, Product } from "../types";
 import { getCustomerData } from "./storage";
+import { CONFIG } from "../services/config";
+import { cartService } from "../services/cartService";
 
 const CART_STORAGE_KEY = "@marketplace_shopping_cart";
 
 export const getCart = async (): Promise<Cart> => {
+  if (!CONFIG.USE_MOCK_DATA) {
+    try {
+      return await cartService.getCart();
+    } catch (error) {
+      console.warn("Failed to fetch cart from API, falling back to local storage:", error);
+    }
+  }
+
   try {
     const customer = await getCustomerData();
     const customerId = customer ? customer.id : "guest_user";
@@ -12,7 +22,6 @@ export const getCart = async (): Promise<Cart> => {
     
     if (json) {
       const cart: Cart = JSON.parse(json);
-      // Ensure customerId matches
       return { ...cart, customerId };
     }
 
@@ -61,6 +70,14 @@ export const addToCart = async (
   product: Product,
   quantity: number = 1
 ): Promise<Cart> => {
+  if (!CONFIG.USE_MOCK_DATA) {
+    try {
+      return await cartService.addToCart(product.id, quantity);
+    } catch (error) {
+      console.warn("Failed to add to cart via API, falling back to local cart:", error);
+    }
+  }
+
   const currentCart = await getCart();
   const existingItemIndex = currentCart.items.findIndex(
     (item) => item.productId === product.id
@@ -71,7 +88,6 @@ export const addToCart = async (
   if (existingItemIndex > -1) {
     const existingItem = updatedItems[existingItemIndex];
     const newQuantity = existingItem.quantity + quantity;
-    // Cap at product stock
     const cappedQuantity = Math.min(newQuantity, product.stock);
     updatedItems[existingItemIndex] = {
       ...existingItem,
@@ -92,6 +108,17 @@ export const updateCartQuantity = async (
   productId: string,
   newQuantity: number
 ): Promise<Cart> => {
+  if (!CONFIG.USE_MOCK_DATA) {
+    try {
+      if (newQuantity <= 0) {
+        return await cartService.removeCartItem(productId);
+      }
+      return await cartService.updateCartItem(productId, newQuantity);
+    } catch (error) {
+      console.warn("Failed to update cart quantity via API, falling back to local cart:", error);
+    }
+  }
+
   const currentCart = await getCart();
   if (newQuantity <= 0) {
     return await removeFromCart(productId);
@@ -109,6 +136,14 @@ export const updateCartQuantity = async (
 };
 
 export const removeFromCart = async (productId: string): Promise<Cart> => {
+  if (!CONFIG.USE_MOCK_DATA) {
+    try {
+      return await cartService.removeCartItem(productId);
+    } catch (error) {
+      console.warn("Failed to remove item from cart via API, falling back to local cart:", error);
+    }
+  }
+
   const currentCart = await getCart();
   const updatedItems = currentCart.items.filter(
     (item) => item.productId !== productId

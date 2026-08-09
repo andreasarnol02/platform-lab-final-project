@@ -1,11 +1,21 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Product } from "../types";
 import { MOCK_PRODUCTS } from "../data/mockData";
+import { CONFIG } from "../services/config";
+import { productService } from "../services/productService";
 
 const PRODUCTS_STORAGE_KEY = "@marketplace_products_list";
 
 /** Initialize product list in storage if empty, or fetch current list */
 export const getProducts = async (): Promise<Product[]> => {
+  if (!CONFIG.USE_MOCK_DATA) {
+    try {
+      return await productService.getProducts();
+    } catch (error) {
+      console.warn("Failed to fetch products from API, falling back to local storage:", error);
+    }
+  }
+
   try {
     const json = await AsyncStorage.getItem(PRODUCTS_STORAGE_KEY);
     if (json) {
@@ -25,6 +35,15 @@ export const getProducts = async (): Promise<Product[]> => {
 
 /** Get products owned by a specific seller (BR-4) */
 export const getProductsBySeller = async (sellerId: string): Promise<Product[]> => {
+  if (!CONFIG.USE_MOCK_DATA) {
+    try {
+      const myProducts = await productService.getMySellerProducts();
+      if (myProducts && myProducts.length > 0) return myProducts;
+    } catch (error) {
+      console.warn("Failed to fetch seller products from API, checking general products:", error);
+    }
+  }
+
   try {
     const allProducts = await getProducts();
     if (!sellerId) return allProducts;
@@ -46,6 +65,32 @@ export const saveProduct = async (
     sellerStoreName: string;
   }
 ): Promise<Product> => {
+  if (!CONFIG.USE_MOCK_DATA) {
+    try {
+      if (productData.id) {
+        return await productService.updateProduct(productData.id, {
+          name: productData.name,
+          price: productData.price,
+          category: productData.category,
+          stock: productData.stock,
+          imageUrl: productData.imageUrl,
+          description: productData.description,
+        });
+      } else {
+        return await productService.createProduct({
+          name: productData.name,
+          price: productData.price,
+          category: productData.category,
+          stock: productData.stock,
+          imageUrl: productData.imageUrl,
+          description: productData.description,
+        });
+      }
+    } catch (error) {
+      console.warn("Failed to save product via API, saving to local storage fallback:", error);
+    }
+  }
+
   try {
     const currentProducts = await getProducts();
 
@@ -101,6 +146,20 @@ export const saveProduct = async (
 
 /** Toggle product active status */
 export const toggleProductActive = async (productId: string): Promise<Product[]> => {
+  if (!CONFIG.USE_MOCK_DATA) {
+    try {
+      const all = await getProductsBySeller("");
+      const target = all.find((p) => p.id === productId);
+      if (target) {
+        await productService.updateProduct(productId, {
+          imageUrl: target.imageUrl,
+        });
+      }
+    } catch (error) {
+      console.warn("Failed to toggle active product via API:", error);
+    }
+  }
+
   try {
     const currentProducts = await getProducts();
     const updated = currentProducts.map((p) => {
@@ -120,6 +179,15 @@ export const toggleProductActive = async (productId: string): Promise<Product[]>
 
 /** Delete a product from seller's catalog */
 export const deleteProduct = async (productId: string): Promise<Product[]> => {
+  if (!CONFIG.USE_MOCK_DATA) {
+    try {
+      await productService.deleteProduct(productId);
+      return await getProductsBySeller("");
+    } catch (error) {
+      console.warn("Failed to delete product via API, executing local deletion:", error);
+    }
+  }
+
   try {
     const currentProducts = await getProducts();
     const filtered = currentProducts.filter((p) => p.id !== productId);

@@ -4,17 +4,26 @@ import { MOCK_ORDERS } from "../data/mockData";
 import { getCustomerData } from "./storage";
 import { clearCart } from "./cartStorage";
 import { deductProductStock } from "./productStorage";
+import { CONFIG } from "../services/config";
+import { orderService } from "../services/orderService";
 
 const ORDERS_STORAGE_KEY = "@marketplace_customer_orders";
 
 /** Initialize and retrieve all customer/seller orders */
 export const getOrders = async (): Promise<Order[]> => {
+  if (!CONFIG.USE_MOCK_DATA) {
+    try {
+      return await orderService.getCustomerOrders();
+    } catch (error) {
+      console.warn("Failed to fetch customer orders from API, falling back to local storage:", error);
+    }
+  }
+
   try {
     const json = await AsyncStorage.getItem(ORDERS_STORAGE_KEY);
     if (json) {
       return JSON.parse(json);
     }
-    // Seed with mock orders initially
     await AsyncStorage.setItem(
       ORDERS_STORAGE_KEY,
       JSON.stringify(MOCK_ORDERS)
@@ -28,6 +37,14 @@ export const getOrders = async (): Promise<Order[]> => {
 
 /** Get orders for a specific seller store (BR-3) */
 export const getOrdersBySeller = async (sellerId: string): Promise<Order[]> => {
+  if (!CONFIG.USE_MOCK_DATA) {
+    try {
+      return await orderService.getSellerOrders();
+    } catch (error) {
+      console.warn("Failed to fetch seller orders from API, falling back to local storage:", error);
+    }
+  }
+
   try {
     const allOrders = await getOrders();
     if (!sellerId) return allOrders;
@@ -43,6 +60,15 @@ export const updateOrderStatus = async (
   orderId: string,
   newStatus: OrderStatus
 ): Promise<Order[]> => {
+  if (!CONFIG.USE_MOCK_DATA) {
+    try {
+      await orderService.updateOrderStatus(orderId, newStatus);
+      return await orderService.getSellerOrders();
+    } catch (error) {
+      console.warn("Failed to update order status via API, updating local storage fallback:", error);
+    }
+  }
+
   try {
     const allOrders = await getOrders();
     const updatedOrders = allOrders.map((order) => {
@@ -70,6 +96,14 @@ export const createOrdersFromCart = async (
   shippingAddress: string,
   paymentMethod: string
 ): Promise<Order[]> => {
+  if (!CONFIG.USE_MOCK_DATA) {
+    try {
+      return await orderService.checkout(shippingAddress, paymentMethod);
+    } catch (error) {
+      console.warn("Failed to checkout via API, executing local order creation fallback:", error);
+    }
+  }
+
   if (!cart.items || cart.items.length === 0) {
     throw new Error("Keranjang belanja kosong.");
   }

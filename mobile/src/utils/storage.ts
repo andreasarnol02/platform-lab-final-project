@@ -123,6 +123,8 @@ export const setCustomerData = async (customer: Customer): Promise<void> => {
   }
 };
 
+export const setCustomerUserData = setCustomerData;
+
 export const getCustomerData = async (): Promise<Customer | null> => {
   try {
     const json = await AsyncStorage.getItem(STORAGE_KEYS.CUSTOMER_USER_DATA);
@@ -144,6 +146,8 @@ export const setSellerData = async (seller: Seller): Promise<void> => {
     console.error("Error saving seller data:", error);
   }
 };
+
+export const setSellerUserData = setSellerData;
 
 export const getSellerData = async (): Promise<Seller | null> => {
   try {

@@ -35,6 +35,8 @@ import {
   setCustomerData,
   setSellerData,
 } from "../utils/storage";
+import { CONFIG } from "../services/config";
+import { authService } from "../services/authService";
 
 type RegisterScreenNavigationProp = StackNavigationProp<
   RootStackParamList,
@@ -119,19 +121,29 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
       setLoading(true);
 
       try {
-        const mockToken = `cust_jwt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        const newCustomer = {
-          id: `cust_${Date.now()}`,
-          name: trimmedName,
-          email: trimmedEmail,
-          phone: customerPhone.trim() || "081234567890",
-          address: customerAddress.trim() || "Alamat Pengiriman Utama",
-          createdAt: new Date().toISOString(),
-        };
+        if (!CONFIG.USE_MOCK_DATA) {
+          await authService.registerCustomer({
+            name: trimmedName,
+            email: trimmedEmail,
+            password,
+            phone: customerPhone.trim() || "081234567890",
+            address: customerAddress.trim() || "Alamat Pengiriman Utama",
+          });
+        } else {
+          const mockToken = `cust_jwt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+          const newCustomer = {
+            id: `cust_${Date.now()}`,
+            name: trimmedName,
+            email: trimmedEmail,
+            phone: customerPhone.trim() || "081234567890",
+            address: customerAddress.trim() || "Alamat Pengiriman Utama",
+            createdAt: new Date().toISOString(),
+          };
 
-        await setCustomerToken(mockToken);
-        await setUserRole("customer");
-        await setCustomerData(newCustomer);
+          await setCustomerToken(mockToken);
+          await setUserRole("customer");
+          await setCustomerData(newCustomer);
+        }
 
         showAlert(
           "success",
@@ -142,9 +154,10 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
           },
           "Mulai Belanja"
         );
-      } catch (error) {
+      } catch (error: any) {
         console.error("Customer Register error:", error);
-        showAlert("danger", "Gagal Mendaftar", "Terjadi kesalahan. Silakan coba lagi.");
+        const msg = error?.message || "Terjadi kesalahan saat pendaftaran. Silakan coba lagi.";
+        showAlert("danger", "Gagal Mendaftar", msg);
       } finally {
         setLoading(false);
       }
@@ -174,19 +187,29 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
       setLoading(true);
 
       try {
-        const mockToken = `seller_jwt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        const newSeller = {
-          id: `seller_${Date.now()}`,
-          storeName: trimmedStore,
-          ownerName: trimmedOwner,
-          email: trimmedEmail,
-          phone: sellerPhone.trim() || "081298765432",
-          createdAt: new Date().toISOString(),
-        };
+        if (!CONFIG.USE_MOCK_DATA) {
+          await authService.registerSeller({
+            storeName: trimmedStore,
+            ownerName: trimmedOwner,
+            email: trimmedEmail,
+            password,
+            phone: sellerPhone.trim() || "081298765432",
+          });
+        } else {
+          const mockToken = `seller_jwt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+          const newSeller = {
+            id: `seller_${Date.now()}`,
+            storeName: trimmedStore,
+            ownerName: trimmedOwner,
+            email: trimmedEmail,
+            phone: sellerPhone.trim() || "081298765432",
+            createdAt: new Date().toISOString(),
+          };
 
-        await setSellerToken(mockToken);
-        await setUserRole("seller");
-        await setSellerData(newSeller);
+          await setSellerToken(mockToken);
+          await setUserRole("seller");
+          await setSellerData(newSeller);
+        }
 
         showAlert(
           "success",
@@ -197,9 +220,10 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
           },
           "Ke Dashboard Toko"
         );
-      } catch (error) {
+      } catch (error: any) {
         console.error("Seller Register error:", error);
-        showAlert("danger", "Gagal Mendaftar Toko", "Terjadi kesalahan. Silakan coba lagi.");
+        const msg = error?.message || "Terjadi kesalahan saat pendaftaran toko. Silakan coba lagi.";
+        showAlert("danger", "Gagal Mendaftar Toko", msg);
       } finally {
         setLoading(false);
       }

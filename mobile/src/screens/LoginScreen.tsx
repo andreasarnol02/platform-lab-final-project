@@ -23,6 +23,8 @@ import {
   setCustomerData,
   setSellerData,
 } from "../utils/storage";
+import { CONFIG } from "../services/config";
+import { authService } from "../services/authService";
 
 type LoginScreenNavigationProp = StackNavigationProp<
   RootStackParamList,
@@ -93,19 +95,30 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
 
     try {
       if (selectedRole === "customer") {
-        const mockToken = `cust_jwt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        const customerProfile = {
-          id: `cust_${Date.now()}`,
-          name: trimmedEmail.split("@")[0] || "Pelanggan",
-          email: trimmedEmail,
-          phone: "081234567890",
-          address: "Jl. Sudirman No. 45, Jakarta",
-          createdAt: new Date().toISOString(),
-        };
+        let customerProfile;
+        if (!CONFIG.USE_MOCK_DATA) {
+          try {
+            const res = await authService.loginCustomer(trimmedEmail, password);
+            customerProfile = res.user;
+          } catch (apiErr: any) {
+            console.warn("API login failed, checking fallback:", apiErr);
+            throw apiErr;
+          }
+        } else {
+          const mockToken = `cust_jwt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+          customerProfile = {
+            id: `cust_${Date.now()}`,
+            name: trimmedEmail.split("@")[0] || "Pelanggan",
+            email: trimmedEmail,
+            phone: "081234567890",
+            address: "Jl. Sudirman No. 45, Jakarta",
+            createdAt: new Date().toISOString(),
+          };
 
-        await setCustomerToken(mockToken);
-        await setUserRole("customer");
-        await setCustomerData(customerProfile);
+          await setCustomerToken(mockToken);
+          await setUserRole("customer");
+          await setCustomerData(customerProfile);
+        }
 
         showAlert(
           "success",
@@ -121,19 +134,30 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
           "Mulai Belanja"
         );
       } else {
-        const mockToken = `seller_jwt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        const sellerProfile = {
-          id: `seller_${Date.now()}`,
-          storeName: `${trimmedEmail.split("@")[0]} Official Store`,
-          ownerName: trimmedEmail.split("@")[0] || "Pemilik Toko",
-          email: trimmedEmail,
-          phone: "081298765432",
-          createdAt: new Date().toISOString(),
-        };
+        let sellerProfile;
+        if (!CONFIG.USE_MOCK_DATA) {
+          try {
+            const res = await authService.loginSeller(trimmedEmail, password);
+            sellerProfile = res.user;
+          } catch (apiErr: any) {
+            console.warn("API login seller failed, checking fallback:", apiErr);
+            throw apiErr;
+          }
+        } else {
+          const mockToken = `seller_jwt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+          sellerProfile = {
+            id: `seller_${Date.now()}`,
+            storeName: `${trimmedEmail.split("@")[0]} Official Store`,
+            ownerName: trimmedEmail.split("@")[0] || "Pemilik Toko",
+            email: trimmedEmail,
+            phone: "081298765432",
+            createdAt: new Date().toISOString(),
+          };
 
-        await setSellerToken(mockToken);
-        await setUserRole("seller");
-        await setSellerData(sellerProfile);
+          await setSellerToken(mockToken);
+          await setUserRole("seller");
+          await setSellerData(sellerProfile);
+        }
 
         showAlert(
           "success",
@@ -145,9 +169,10 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
           "Ke Dashboard Toko"
         );
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Login error:", error);
-      showAlert("danger", "Gagal Login", "Terjadi kesalahan saat masuk. Silakan coba lagi.");
+      const msg = error?.message || "Terjadi kesalahan saat masuk. Silakan periksa email/password Anda.";
+      showAlert("danger", "Gagal Login", msg);
     } finally {
       setLoading(false);
     }
