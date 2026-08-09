@@ -39,58 +39,64 @@ Jalankan API dan klien web secara bersamaan dari root repositori:
 npm run dev
 ```
 
-Layanan tersedia di:
+Layanan bisa diakses di:
 
-- Klien web: `https://marketplacestore.vercel.app/`
-- API: `https://platform-lab-final-project.onrender.com/`
-- Pemeriksaan kesehatan API: `http://localhost:4000/`
+- Web client: `http://localhost:5173` (deployed di `https://marketplacestore.vercel.app/`)
+- API: `http://localhost:4000` (deployed di `https://platform-lab-final-project.onrender.com/`)
+- API health check: `http://localhost:4000/`
 
-API juga secara default mengizinkan origin web lokal `http://127.0.0.1:5173`.
+Secara default, API juga mengizinkan origin web lokal `http://127.0.0.1:5173`.
+
+## Download Aplikasi Mobile
+
+Build Expo (EAS) untuk aplikasi mobile bisa di-download di:
+
+- [Expo build: personal-proj](https://expo.dev/accounts/gildoraths-team/projects/personal-proj/builds/96367953-0390-4787-89e4-9786eb56bc02)
 
 ## Perintah
 
-| Perintah | Tujuan |
+| Perintah | Keterangan |
 | --- | --- |
-| `npm run dev` | Jalankan API dan klien web secara bersamaan |
-| `npm test` | Jalankan pengujian Jest API dan web |
-| `npm run build` | Buat build produksi web |
-| `npm --prefix api test` | Jalankan hanya pengujian API |
-| `npm --prefix web test` | Jalankan hanya pengujian web |
-| `npm --prefix web run test:e2e` | Jalankan pengujian browser Playwright |
-| `npm --prefix web run preview` | Pratinjau build produksi web |
+| `npm run dev` | Jalankan API dan web client sekaligus |
+| `npm test` | Jalankan test Jest untuk API dan web |
+| `npm run build` | Build web untuk produksi |
+| `npm --prefix api test` | Jalankan test API saja |
+| `npm --prefix web test` | Jalankan test web saja |
+| `npm --prefix web run test:e2e` | Jalankan Playwright browser test |
+| `npm --prefix web run preview` | Preview build produksi web |
 
 ## Area Aplikasi
 
-Rute pelanggan meliputi:
+Rute customer:
 
 - `/` - beranda toko
-- `/products` - katalog produk yang dapat dicari
+- `/products` - katalog produk dengan fitur search
 - `/products/:id` - detail produk
 - `/cart` - keranjang belanja
 - `/checkout` - checkout simulasi
 - `/orders` - riwayat pesanan
-- `/profile` - profil pelanggan
+- `/profile` - profil customer
 
-Rute penjual meliputi:
+Rute seller:
 
-- `/seller/login` dan `/seller/register` - autentikasi penjual
-- `/seller/dashboard` - ringkasan penjual
-- `/seller/products` - pengelolaan produk milik penjual
-- `/seller/orders` - pesanan masuk dan status pemenuhan
+- `/seller/login` dan `/seller/register` - login/registrasi seller
+- `/seller/dashboard` - ringkasan seller
+- `/seller/products` - manajemen produk seller
+- `/seller/orders` - pesanan masuk dan status fulfillment
 
-API menegakkan autentikasi, pemisahan peran pelanggan/penjual, dan kepemilikan sumber daya. Checkout membuat satu pesanan per penjual dan langsung menandai pembayaran sebagai simulasi dan terkonfirmasi.
+API menangani autentikasi, memisahkan role customer/seller, dan memastikan kepemilikan resource. Saat checkout, dibuat satu pesanan per seller dan status pembayaran langsung diset sebagai simulated & confirmed.
 
 ## Struktur Proyek
 
 ```text
-api/                 Express API, model, rute, middleware, dan pengujian
-web/                 Aplikasi React/Vite untuk pelanggan dan penjual
+api/                 Express API, models, routes, middleware, dan tests
+web/                 Aplikasi React/Vite untuk customer dan seller
 docs/                Dokumentasi produk, teknis, dan desain
-.github/workflows/   Pemeriksaan CI
-package.json         Perintah pengembangan, pengujian, dan build root
+.github/workflows/   CI checks
+package.json         Root commands untuk dev, test, dan build
 ```
 
-Dokumentasi layanan selengkapnya tersedia di:
+Dokumentasi lengkap tersedia di:
 
 - [`api/README.md`](api/README.md)
 - [`web/README.md`](web/README.md)
@@ -100,7 +106,7 @@ Dokumentasi layanan selengkapnya tersedia di:
 
 ## Verifikasi
 
-Alur kerja CI menjalankan pengujian API, pengujian frontend dan build, pengujian browser Playwright, audit dependensi, analisis CodeQL, serta pemindaian rahasia. Verifikasi lokal dapat dijalankan dengan:
+CI workflow menjalankan test API, test + build frontend, Playwright browser test, dependency audit, analisis CodeQL, dan secret scan. Untuk verifikasi lokal, jalankan:
 
 ```bash
 npm test
@@ -108,4 +114,4 @@ npm run build
 npm --prefix web run test:e2e
 ```
 
-Jangan pernah melakukan commit terhadap file `.env` atau kredensial nyata. Hanya file `.env.example` yang boleh berada dalam kontrol versi.
+Jangan commit file `.env` atau credential asli — hanya file `.env.example` yang boleh masuk version control.
