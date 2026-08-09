@@ -1,6 +1,6 @@
 # Marketplace
 
-Marketplace full-stack multi-penjual untuk customer dan seller. Proyek ini terdiri dari web client React/Vite, API Node.js/Express, persistensi MongoDB, checkout simulasi, manajemen produk seller, dan fulfillment pesanan seller.
+Marketplace full-stack multi-penjual untuk customer dan seller. Proyek ini terdiri dari web client React/Vite, aplikasi mobile React Native/Expo, API Node.js/Express, persistensi MongoDB, checkout simulasi, manajemen produk seller, dan fulfillment pesanan seller.
 
 ## Persyaratan
 
@@ -12,12 +12,13 @@ Checkout memakai transaksi MongoDB untuk mencadangkan stok, membuat satu pesanan
 
 ## Quick Start
 
-Instal dependency di root workspace dan kedua aplikasi:
+Instal dependency di root workspace dan semua aplikasi:
 
 ```bash
 npm install
 npm --prefix api install
 npm --prefix web install
+npm --prefix mobile install
 ```
 
 Buat file environment lokal:
@@ -47,6 +48,8 @@ Layanan bisa diakses di:
 
 Secara default, API juga mengizinkan origin web lokal `http://127.0.0.1:5173`.
 
+Catatan: `npm run dev` hanya menjalankan API + web. Aplikasi mobile dijalankan terpisah via `npm run mobile` (Expo) dan membutuhkan API aktif di port `4000`.
+
 ## Download Aplikasi Mobile
 
 Build Expo (EAS) untuk aplikasi mobile bisa di-download di:
@@ -58,6 +61,7 @@ Build Expo (EAS) untuk aplikasi mobile bisa di-download di:
 | Perintah | Keterangan |
 | --- | --- |
 | `npm run dev` | Jalankan API dan web client sekaligus |
+| `npm run mobile` | Jalankan aplikasi mobile (Expo) |
 | `npm test` | Jalankan test Jest untuk API dan web |
 | `npm run build` | Build web untuk produksi |
 | `npm --prefix api test` | Jalankan test API saja |
@@ -91,6 +95,7 @@ API menangani autentikasi, memisahkan role customer/seller, dan memastikan kepem
 ```text
 api/                 Express API, models, routes, middleware, dan tests
 web/                 Aplikasi React/Vite untuk customer dan seller
+mobile/              Aplikasi React Native/Expo untuk customer dan seller
 docs/                Dokumentasi produk, teknis, dan desain
 .github/workflows/   CI checks
 package.json         Root commands untuk dev, test, dan build
@@ -100,18 +105,20 @@ Dokumentasi lengkap tersedia di:
 
 - [`api/README.md`](api/README.md)
 - [`web/README.md`](web/README.md)
+- [`mobile/README.md`](mobile/README.md)
 - [`docs/product-requirements.md`](docs/product-requirements.md)
 - [`docs/technical-requirements.md`](docs/technical-requirements.md)
 - [`docs/design-system.md`](docs/design-system.md)
 
 ## Verifikasi
 
-CI workflow menjalankan test API, test + build frontend, Playwright browser test, dependency audit, analisis CodeQL, dan secret scan. Untuk verifikasi lokal, jalankan:
+CI workflow menjalankan test API, test + build frontend, test + bundle check mobile, Playwright browser test, dependency audit, analisis CodeQL, dan secret scan. Untuk verifikasi lokal, jalankan:
 
 ```bash
 npm test
 npm run build
 npm --prefix web run test:e2e
+npm --prefix mobile test
 ```
 
 Jangan commit file `.env` atau credential asli — hanya file `.env.example` yang boleh masuk version control.
