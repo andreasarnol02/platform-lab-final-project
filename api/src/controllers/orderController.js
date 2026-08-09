@@ -79,7 +79,6 @@ const checkout = async (req, res) => {
                     throw new CheckoutError(`Stok tidak cukup untuk "${item.product.name}"`);
                 }
             }
-
             const orderPayloads = [...groups].map(([sellerId, items]) => ({
                 customer: req.user.id,
                 seller: sellerId,

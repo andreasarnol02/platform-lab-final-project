@@ -1,6 +1,6 @@
 # Marketplace
 
-Marketplace full-stack multi-penjual untuk customer dan seller. Proyek ini terdiri dari web client React/Vite, API Node.js/Express, persistensi MongoDB, checkout simulasi, manajemen produk seller, dan fulfillment pesanan seller.
+Marketplace full-stack multi-penjual untuk pelanggan dan penjual. Proyek ini mencakup klien web React/Vite, API Node.js/Express, persistensi MongoDB, checkout simulasi, pengelolaan produk penjual, dan pemenuhan pesanan penjual.
 
 ## Persyaratan
 
@@ -8,11 +8,11 @@ Marketplace full-stack multi-penjual untuk customer dan seller. Proyek ini terdi
 - MongoDB dengan dukungan transaksi
 - npm
 
-Checkout memakai transaksi MongoDB untuk mencadangkan stok, membuat satu pesanan per seller, dan mengosongkan keranjang — semuanya dalam satu operasi atomic. Untuk testing checkout, gunakan MongoDB Atlas atau replica set lokal; server MongoDB standalone tidak mendukung transaksi.
+Checkout menggunakan transaksi MongoDB untuk mencadangkan stok, membuat satu pesanan per penjual, dan mengosongkan keranjang secara atomik. Gunakan MongoDB Atlas atau replica set lokal untuk pengujian checkout; server MongoDB standalone tidak mendukung transaksi.
 
-## Quick Start
+## Mulai Cepat
 
-Instal dependency di root workspace dan kedua aplikasi:
+Instal runner workspace root dan dependensi kedua aplikasi:
 
 ```bash
 npm install
@@ -27,13 +27,13 @@ cp api/.env.example api/.env
 cp web/.env.example web/.env
 ```
 
-Isi `MONGODB_URI` dan `JWT_SECRET` (acak & panjang) di `api/.env`. Generate secret dengan:
+Atur `MONGODB_URI` dan `JWT_SECRET` yang panjang serta acak di `api/.env`. Buat rahasia dengan:
 
 ```bash
 openssl rand -hex 32
 ```
 
-Jalankan API dan web client sekaligus dari root repo:
+Jalankan API dan klien web secara bersamaan dari root repositori:
 
 ```bash
 npm run dev
