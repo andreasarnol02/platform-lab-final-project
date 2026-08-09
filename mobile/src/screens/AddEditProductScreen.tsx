@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   Platform,
   Switch,
   Image,
+  ActivityIndicator,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
@@ -25,8 +26,9 @@ import { StackNavigationProp } from "@react-navigation/stack";
 import { RouteProp } from "@react-navigation/native";
 import { RootStackParamList } from "../navigation/types";
 import { saveProduct } from "../utils/productStorage";
-import { getSellerData } from "../utils/storage";
+import { getSellerData, getSellerToken } from "../utils/storage";
 import { CustomAlertModal, ModalType } from "../components/CustomAlertModal";
+import { GuestLoginBanner } from "../components/GuestLoginBanner";
 import { colors, spacing, borderRadius, shadows } from "../theme";
 
 type AddEditProductNavigationProp = StackNavigationProp<
@@ -58,6 +60,23 @@ export const AddEditProductScreen: React.FC<Props> = ({
 }) => {
   const insets = useSafeAreaInsets();
   const existingProduct = route.params?.product;
+
+  const [sellerToken, setSellerTokenState] = useState<string | null>(null);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+
+  useEffect(() => {
+    const checkToken = async () => {
+      try {
+        const token = await getSellerToken();
+        setSellerTokenState(token);
+      } catch (err) {
+        console.error("Error checking seller token:", err);
+      } finally {
+        setCheckingAuth(false);
+      }
+    };
+    checkToken();
+  }, []);
 
   const [name, setName] = useState(existingProduct?.name || "");
   const [price, setPrice] = useState(
@@ -188,18 +207,35 @@ export const AddEditProductScreen: React.FC<Props> = ({
         <View style={{ width: 60 }} />
       </View>
 
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={{ flex: 1 }}
-      >
+      {checkingAuth ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.storefront.green} />
+        </View>
+      ) : !sellerToken ? (
         <ScrollView
-          contentContainerStyle={[
-            styles.scrollContainer,
-            { paddingBottom: Math.max(insets.bottom + spacing.xl, spacing.xxl) },
-          ]}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}
         >
+          <GuestLoginBanner
+            title="Akses Toko Diperlukan"
+            description="Anda harus login sebagai Seller / Toko untuk menambah atau mengedit produk toko Anda."
+            role="seller"
+            onLogin={() => navigation.navigate("Login")}
+            onRegister={() => navigation.navigate("Register")}
+          />
+        </ScrollView>
+      ) : (
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={{ flex: 1 }}
+        >
+          <ScrollView
+            contentContainerStyle={[
+              styles.scrollContainer,
+              { paddingBottom: Math.max(insets.bottom + spacing.xl, spacing.xxl) },
+            ]}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
           {/* Image Preview Banner */}
           <View style={styles.imagePreviewCard}>
             <Image
@@ -370,6 +406,7 @@ export const AddEditProductScreen: React.FC<Props> = ({
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+      )}
 
       {/* Custom Alert Modal */}
       <CustomAlertModal
@@ -387,6 +424,12 @@ export const AddEditProductScreen: React.FC<Props> = ({
 const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
+    backgroundColor: colors.storefront.bg,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
     backgroundColor: colors.storefront.bg,
   },
   topHeader: {

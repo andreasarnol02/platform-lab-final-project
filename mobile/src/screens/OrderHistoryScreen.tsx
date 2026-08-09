@@ -24,10 +24,13 @@ import {
   PackageOpen,
   RotateCw,
 } from "lucide-react-native";
+import { ScrollView } from "react-native";
 import { RootStackParamList } from "../navigation/types";
 import { Order, OrderStatus } from "../types";
 import { colors, spacing, borderRadius, shadows } from "../theme";
 import { getOrders } from "../utils/orderStorage";
+import { getCustomerToken } from "../utils/storage";
+import { GuestLoginBanner } from "../components/GuestLoginBanner";
 
 type OrderHistoryScreenNavigationProp = StackNavigationProp<
   RootStackParamList,
@@ -95,12 +98,15 @@ const renderStatusBadge = (status: OrderStatus) => {
 export const OrderHistoryScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
   const [orders, setOrders] = useState<Order[]>([]);
+  const [customerToken, setCustomerTokenState] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const loadOrders = async (isRefetch = false) => {
     if (!isRefetch) setLoading(true);
     try {
+      const token = await getCustomerToken();
+      setCustomerTokenState(token);
       const data = await getOrders();
       setOrders(data);
     } catch (error) {
@@ -238,6 +244,26 @@ export const OrderHistoryScreen: React.FC<Props> = ({ navigation }) => {
           <ActivityIndicator size="large" color={colors.storefront.green} />
           <Text style={styles.loadingText}>Memuat riwayat transaksi...</Text>
         </View>
+      ) : !customerToken ? (
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              colors={[colors.storefront.green]}
+              tintColor={colors.storefront.green}
+            />
+          }
+        >
+          <GuestLoginBanner
+            title="Belum Login"
+            description="Silakan login terlebih dahulu untuk melihat riwayat transaksi dan status pesanan Anda."
+            role="customer"
+            onLogin={() => navigation.navigate("Login")}
+            onRegister={() => navigation.navigate("Register")}
+          />
+        </ScrollView>
       ) : orders.length === 0 ? (
         <View style={styles.emptyContainer}>
           <View style={styles.emptyIconCircle}>

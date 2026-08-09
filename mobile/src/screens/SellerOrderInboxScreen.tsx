@@ -22,13 +22,15 @@ import {
   ShoppingBag,
   RotateCw,
 } from "lucide-react-native";
+import { ScrollView } from "react-native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { RouteProp } from "@react-navigation/native";
 import { RootStackParamList } from "../navigation/types";
 import { Order, OrderStatus } from "../types";
 import { getOrdersBySeller, updateOrderStatus } from "../utils/orderStorage";
-import { getSellerData } from "../utils/storage";
+import { getSellerData, getSellerToken } from "../utils/storage";
 import { CustomAlertModal, ModalType } from "../components/CustomAlertModal";
+import { GuestLoginBanner } from "../components/GuestLoginBanner";
 import { colors, spacing, borderRadius, shadows } from "../theme";
 
 type SellerOrderInboxNavigationProp = StackNavigationProp<
@@ -51,6 +53,7 @@ export const SellerOrderInboxScreen: React.FC<Props> = ({
 }) => {
   const insets = useSafeAreaInsets();
   const [orders, setOrders] = useState<Order[]>([]);
+  const [sellerToken, setSellerTokenState] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedTab, setSelectedTab] = useState<"ALL" | OrderStatus>("ALL");
@@ -91,6 +94,8 @@ export const SellerOrderInboxScreen: React.FC<Props> = ({
   const loadSellerOrders = async (isRefetch = false) => {
     if (!isRefetch) setLoading(true);
     try {
+      const token = await getSellerToken();
+      setSellerTokenState(token);
       const seller = await getSellerData();
       const sId = route.params?.sellerId || seller?.id || "sell_001";
       setCurrentSellerId(sId);
@@ -385,6 +390,26 @@ export const SellerOrderInboxScreen: React.FC<Props> = ({
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={colors.storefront.green} />
         </View>
+      ) : !sellerToken ? (
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              colors={[colors.storefront.green]}
+              tintColor={colors.storefront.green}
+            />
+          }
+        >
+          <GuestLoginBanner
+            title="Akses Toko Diperlukan"
+            description="Silakan login sebagai Seller / Toko untuk melihat dan memproses pesanan masuk dari pembeli."
+            role="seller"
+            onLogin={() => navigation.navigate("Login")}
+            onRegister={() => navigation.navigate("Register")}
+          />
+        </ScrollView>
       ) : filteredOrders.length === 0 ? (
         <View style={styles.emptyContainer}>
           <PackageCheck size={48} color={colors.storefront.muted} style={{ marginBottom: spacing.md }} />

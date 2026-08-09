@@ -41,6 +41,7 @@ import { AuthPromptModal } from "../components/AuthPromptModal";
 import { CheckoutSuccessModal } from "../components/CheckoutSuccessModal";
 import { CheckoutConfirmModal } from "../components/CheckoutConfirmModal";
 import { CustomAlertModal, ModalType } from "../components/CustomAlertModal";
+import { GuestLoginBanner } from "../components/GuestLoginBanner";
 
 type CartScreenNavigationProp = StackNavigationProp<
   RootStackParamList,
@@ -292,7 +293,7 @@ export const CartScreen: React.FC<Props> = ({ navigation }) => {
             <RotateCw size={18} color={colors.storefront.ink} />
           </TouchableOpacity>
 
-          {cart && cart.items.length > 0 && (
+          {customerToken && cart && cart.items.length > 0 && (
             <TouchableOpacity
               onPress={handleClearCart}
               style={styles.clearCartButton}
@@ -305,25 +306,28 @@ export const CartScreen: React.FC<Props> = ({ navigation }) => {
         </View>
       </View>
 
-      {/* Unauthorized Customer Banner */}
-      {!customerToken && (
-        <View style={styles.unauthBanner}>
-          <Lock size={16} color="#92400E" style={{ marginRight: spacing.xs }} />
-          <Text style={styles.unauthBannerText}>
-            Silakan masuk ke akun Anda untuk melakukan transaksi checkout.
-          </Text>
-          <TouchableOpacity
-            style={styles.unauthLoginBtn}
-            onPress={() => navigation.navigate("Login")}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.unauthLoginBtnText}>Masuk</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {/* Empty State */}
-      {!cart || cart.items.length === 0 ? (
+      {/* Guest unauthenticated view */}
+      {!customerToken ? (
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              colors={[colors.storefront.green]}
+              tintColor={colors.storefront.green}
+            />
+          }
+        >
+          <GuestLoginBanner
+            title="Belum Login"
+            description="Silakan login atau daftar akun pembeli untuk melihat dan mengelola keranjang belanja Anda."
+            role="customer"
+            onLogin={() => navigation.navigate("Login")}
+            onRegister={() => navigation.navigate("Register")}
+          />
+        </ScrollView>
+      ) : !cart || cart.items.length === 0 ? (
         <ScrollView
           contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}
           refreshControl={
@@ -512,7 +516,7 @@ export const CartScreen: React.FC<Props> = ({ navigation }) => {
       )}
 
       {/* Fixed Bottom Checkout Action Bar with Dynamic Safe Bottom Inset */}
-      {cart && cart.items.length > 0 && (
+      {customerToken && cart && cart.items.length > 0 && (
         <View
           style={[
             styles.bottomBar,
