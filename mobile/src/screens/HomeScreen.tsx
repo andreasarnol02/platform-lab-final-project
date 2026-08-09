@@ -10,6 +10,7 @@ import {
   FlatList,
   Dimensions,
   Alert,
+  RefreshControl,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StackNavigationProp } from "@react-navigation/stack";
@@ -23,6 +24,7 @@ import {
   Plus,
   Truck,
   Sparkles,
+  RotateCw,
 } from "lucide-react-native";
 import { RootStackParamList } from "../navigation/types";
 import { Product } from "../types";
@@ -57,6 +59,7 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
 
   const [addedProduct, setAddedProduct] = useState<Product | null>(null);
   const [cartModalVisible, setCartModalVisible] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const loadInitialData = async () => {
     try {
@@ -74,6 +77,12 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
     } catch (error) {
       console.error("Error loading home data:", error);
     }
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadInitialData();
+    setRefreshing(false);
   };
 
   useEffect(() => {
@@ -180,8 +189,17 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
             <Text style={styles.brandSubtitle}>ETALASE MARKETPLACE</Text>
           </View>
 
-          {/* Action Header Icons (Cart, Orders, Auth) */}
+          {/* Action Header Icons (Refresh, Cart, Orders, Auth) */}
           <View style={styles.headerActions}>
+            {/* Refetch / Refresh Button */}
+            <TouchableOpacity
+              style={styles.iconButton}
+              onPress={handleRefresh}
+              activeOpacity={0.7}
+            >
+              <RotateCw size={18} color={colors.storefront.ink} />
+            </TouchableOpacity>
+
             {/* Orders History Icon */}
             <TouchableOpacity
               style={styles.iconButton}
@@ -257,6 +275,14 @@ export const HomeScreen = ({ navigation }: HomeScreenProps) => {
           { paddingBottom: Math.max(insets.bottom + spacing.lg, spacing.xxl) },
         ]}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            colors={[colors.storefront.green]}
+            tintColor={colors.storefront.green}
+          />
+        }
       >
         {/* Horizontal Category Filter Pills */}
         <ScrollView

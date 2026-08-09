@@ -9,6 +9,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   Switch,
+  RefreshControl,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
@@ -20,6 +21,7 @@ import {
   Package,
   AlertTriangle,
   Tag,
+  RotateCw,
 } from "lucide-react-native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { RouteProp } from "@react-navigation/native";
@@ -55,6 +57,7 @@ export const SellerProductListScreen: React.FC<Props> = ({
   const insets = useSafeAreaInsets();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState<
     "ALL" | "ACTIVE" | "INACTIVE" | "OUT_OF_STOCK"
@@ -99,8 +102,8 @@ export const SellerProductListScreen: React.FC<Props> = ({
     });
   };
 
-  const loadSellerProducts = async () => {
-    setLoading(true);
+  const loadSellerProducts = async (isRefetch = false) => {
+    if (!isRefetch) setLoading(true);
     try {
       const seller = await getSellerData();
       const sId = route.params?.sellerId || seller?.id || "sell_001";
@@ -115,7 +118,13 @@ export const SellerProductListScreen: React.FC<Props> = ({
       console.error("Error loading seller products:", error);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadSellerProducts(true);
   };
 
   useEffect(() => {
@@ -267,13 +276,23 @@ export const SellerProductListScreen: React.FC<Props> = ({
           <Text style={styles.headerSubtitle}>{storeName}</Text>
         </View>
 
-        <TouchableOpacity
-          style={styles.addHeaderButton}
-          activeOpacity={0.85}
-          onPress={() => navigation.navigate("AddEditProduct")}
-        >
-          <Plus size={18} color={colors.white} />
-        </TouchableOpacity>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <TouchableOpacity
+            style={styles.refreshHeaderButton}
+            activeOpacity={0.7}
+            onPress={handleRefresh}
+          >
+            <RotateCw size={18} color={colors.storefront.ink} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.addHeaderButton}
+            activeOpacity={0.85}
+            onPress={() => navigation.navigate("AddEditProduct")}
+          >
+            <Plus size={18} color={colors.white} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Search & Filter Bar */}
@@ -351,6 +370,14 @@ export const SellerProductListScreen: React.FC<Props> = ({
             { paddingBottom: Math.max(insets.bottom + spacing.xl, spacing.xxl) },
           ]}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              colors={[colors.storefront.green]}
+              tintColor={colors.storefront.green}
+            />
+          }
         />
       )}
 
@@ -422,6 +449,16 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     ...shadows.button,
+  },
+  refreshHeaderButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.storefront.bg,
+    borderWidth: 1,
+    borderColor: colors.storefront.line,
+    justifyContent: "center",
+    alignItems: "center",
   },
   filterSection: {
     padding: spacing.md,

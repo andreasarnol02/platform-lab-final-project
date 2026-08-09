@@ -7,6 +7,7 @@ import {
   FlatList,
   Image,
   ActivityIndicator,
+  RefreshControl,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StackNavigationProp } from "@react-navigation/stack";
@@ -21,6 +22,7 @@ import {
   AlertCircle,
   MapPin,
   PackageOpen,
+  RotateCw,
 } from "lucide-react-native";
 import { RootStackParamList } from "../navigation/types";
 import { Order, OrderStatus } from "../types";
@@ -94,9 +96,10 @@ export const OrderHistoryScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const loadOrders = async () => {
-    setLoading(true);
+  const loadOrders = async (isRefetch = false) => {
+    if (!isRefetch) setLoading(true);
     try {
       const data = await getOrders();
       setOrders(data);
@@ -104,7 +107,13 @@ export const OrderHistoryScreen: React.FC<Props> = ({ navigation }) => {
       console.error("Error loading order history:", error);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadOrders(true);
   };
 
   useEffect(() => {
@@ -215,7 +224,13 @@ export const OrderHistoryScreen: React.FC<Props> = ({ navigation }) => {
           <ArrowLeft size={22} color={colors.storefront.ink} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Riwayat Pesanan</Text>
-        <View style={{ width: 36 }} />
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={handleRefresh}
+          activeOpacity={0.7}
+        >
+          <RotateCw size={18} color={colors.storefront.ink} />
+        </TouchableOpacity>
       </View>
 
       {loading ? (
@@ -250,6 +265,14 @@ export const OrderHistoryScreen: React.FC<Props> = ({ navigation }) => {
             { paddingBottom: Math.max(insets.bottom + spacing.lg, spacing.xxl) },
           ]}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              colors={[colors.storefront.green]}
+              tintColor={colors.storefront.green}
+            />
+          }
         />
       )}
     </View>

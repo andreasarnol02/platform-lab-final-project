@@ -5,6 +5,7 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
+  RefreshControl,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StackNavigationProp } from "@react-navigation/stack";
@@ -26,6 +27,7 @@ import {
   ChevronRight,
   UserPlus,
   Briefcase,
+  RotateCw,
 } from "lucide-react-native";
 import { RootStackParamList } from "../navigation/types";
 import { CustomAlertModal, ModalType } from "../components/CustomAlertModal";
@@ -116,6 +118,7 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
     activeProducts: 0,
   });
   const [sellerLowStockCount, setSellerLowStockCount] = useState<number>(0);
+  const [refreshing, setRefreshing] = useState(false);
 
   const loadUserData = async () => {
     try {
@@ -163,7 +166,14 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
       }
     } catch (error) {
       console.error("Error loading profile data:", error);
+    } finally {
+      setRefreshing(false);
     }
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadUserData();
   };
 
   useEffect(() => {
@@ -236,13 +246,23 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
             : "Profil"}
         </Text>
 
-        <TouchableOpacity
-          style={styles.onboardingIconButton}
-          activeOpacity={0.7}
-          onPress={handleResetOnboarding}
-        >
-          <Compass size={18} color={colors.storefront.greenDark} />
-        </TouchableOpacity>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <TouchableOpacity
+            style={styles.onboardingIconButton}
+            activeOpacity={0.7}
+            onPress={handleRefresh}
+          >
+            <RotateCw size={18} color={colors.storefront.ink} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.onboardingIconButton}
+            activeOpacity={0.7}
+            onPress={handleResetOnboarding}
+          >
+            <Compass size={18} color={colors.storefront.greenDark} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView
@@ -251,6 +271,14 @@ export const ProfileScreen: React.FC<Props> = ({ navigation }) => {
           { paddingBottom: Math.max(insets.bottom + spacing.lg, spacing.xxl) },
         ]}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            colors={[colors.storefront.green]}
+            tintColor={colors.storefront.green}
+          />
+        }
       >
         {/* VIEW 1: GUEST / NOT LOGGED IN STATE */}
         {isGuest && (

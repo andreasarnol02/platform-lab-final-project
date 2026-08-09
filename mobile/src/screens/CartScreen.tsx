@@ -9,6 +9,7 @@ import {
   Alert,
   TextInput,
   ActivityIndicator,
+  RefreshControl,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { StackNavigationProp } from "@react-navigation/stack";
@@ -23,6 +24,7 @@ import {
   CreditCard,
   ShieldCheck,
   CheckCircle2,
+  RotateCw,
 } from "lucide-react-native";
 import { RootStackParamList } from "../navigation/types";
 import { Cart, CartItem, Customer } from "../types";
@@ -111,9 +113,10 @@ export const CartScreen: React.FC<Props> = ({ navigation }) => {
   const [shippingAddress, setShippingAddress] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("Transfer Bank BCA");
   const [isSubmittingCheckout, setIsSubmittingCheckout] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const fetchCartData = async () => {
-    setLoading(true);
+  const fetchCartData = async (isRefetch = false) => {
+    if (!isRefetch) setLoading(true);
     try {
       const token = await getCustomerToken();
       const user = await getCustomerData();
@@ -131,7 +134,13 @@ export const CartScreen: React.FC<Props> = ({ navigation }) => {
       console.error("Error fetching cart data:", error);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await fetchCartData(true);
   };
 
   useEffect(() => {
@@ -275,18 +284,25 @@ export const CartScreen: React.FC<Props> = ({ navigation }) => {
           <ArrowLeft size={22} color={colors.storefront.ink} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Keranjang Belanja</Text>
-        {cart && cart.items.length > 0 ? (
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
           <TouchableOpacity
-            onPress={handleClearCart}
-            style={styles.clearCartButton}
+            onPress={handleRefresh}
             activeOpacity={0.7}
           >
-            <Trash2 size={16} color={colors.storefront.danger} />
-            <Text style={styles.clearText}>Hapus</Text>
+            <RotateCw size={18} color={colors.storefront.ink} />
           </TouchableOpacity>
-        ) : (
-          <View style={{ width: 60 }} />
-        )}
+
+          {cart && cart.items.length > 0 && (
+            <TouchableOpacity
+              onPress={handleClearCart}
+              style={styles.clearCartButton}
+              activeOpacity={0.7}
+            >
+              <Trash2 size={16} color={colors.storefront.danger} />
+              <Text style={styles.clearText}>Hapus</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       {/* Unauthorized Customer Banner */}
@@ -308,22 +324,34 @@ export const CartScreen: React.FC<Props> = ({ navigation }) => {
 
       {/* Empty State */}
       {!cart || cart.items.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <View style={styles.emptyIconCircle}>
-            <ShoppingBag size={48} color={colors.storefront.green} />
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              colors={[colors.storefront.green]}
+              tintColor={colors.storefront.green}
+            />
+          }
+        >
+          <View style={styles.emptyContainer}>
+            <View style={styles.emptyIconCircle}>
+              <ShoppingBag size={48} color={colors.storefront.green} />
+            </View>
+            <Text style={styles.emptyTitle}>Keranjang Belanja Kosong</Text>
+            <Text style={styles.emptySubtitle}>
+              Temukan produk menarik dari penjual terpercaya di Storefront Marketplace.
+            </Text>
+            <TouchableOpacity
+              style={styles.shopNowButton}
+              onPress={() => navigation.navigate("Home")}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.shopNowButtonText}>Eksplor Katalog</Text>
+            </TouchableOpacity>
           </View>
-          <Text style={styles.emptyTitle}>Keranjang Belanja Kosong</Text>
-          <Text style={styles.emptySubtitle}>
-            Temukan produk menarik dari penjual terpercaya di Storefront Marketplace.
-          </Text>
-          <TouchableOpacity
-            style={styles.shopNowButton}
-            onPress={() => navigation.navigate("Home")}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.shopNowButtonText}>Eksplor Katalog</Text>
-          </TouchableOpacity>
-        </View>
+        </ScrollView>
       ) : (
         <ScrollView
           contentContainerStyle={[
@@ -331,6 +359,14 @@ export const CartScreen: React.FC<Props> = ({ navigation }) => {
             { paddingBottom: insets.bottom + 120 },
           ]}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              colors={[colors.storefront.green]}
+              tintColor={colors.storefront.green}
+            />
+          }
         >
           {/* Multi-Seller Grouped Store Cards (BR-7) */}
           {groupedCartItems.map((group) => (

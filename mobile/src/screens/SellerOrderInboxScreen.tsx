@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
+  RefreshControl,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
@@ -19,6 +20,7 @@ import {
   CreditCard,
   User,
   ShoppingBag,
+  RotateCw,
 } from "lucide-react-native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { RouteProp } from "@react-navigation/native";
@@ -50,6 +52,7 @@ export const SellerOrderInboxScreen: React.FC<Props> = ({
   const insets = useSafeAreaInsets();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [selectedTab, setSelectedTab] = useState<"ALL" | OrderStatus>("ALL");
 
   const [currentSellerId, setCurrentSellerId] = useState<string>("sell_001");
@@ -85,8 +88,8 @@ export const SellerOrderInboxScreen: React.FC<Props> = ({
     });
   };
 
-  const loadSellerOrders = async () => {
-    setLoading(true);
+  const loadSellerOrders = async (isRefetch = false) => {
+    if (!isRefetch) setLoading(true);
     try {
       const seller = await getSellerData();
       const sId = route.params?.sellerId || seller?.id || "sell_001";
@@ -101,7 +104,13 @@ export const SellerOrderInboxScreen: React.FC<Props> = ({
       console.error("Error loading seller orders:", error);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadSellerOrders(true);
   };
 
   useEffect(() => {
@@ -326,7 +335,13 @@ export const SellerOrderInboxScreen: React.FC<Props> = ({
           <Text style={styles.headerSubtitle}>{storeName}</Text>
         </View>
 
-        <View style={{ width: 70 }} />
+        <TouchableOpacity
+          style={styles.backButtonPill}
+          onPress={handleRefresh}
+          activeOpacity={0.7}
+        >
+          <RotateCw size={18} color={colors.storefront.ink} />
+        </TouchableOpacity>
       </View>
 
       {/* Filter Tabs Horizontal Scroll */}
@@ -388,6 +403,14 @@ export const SellerOrderInboxScreen: React.FC<Props> = ({
             { paddingBottom: Math.max(insets.bottom + spacing.xl, spacing.xxl) },
           ]}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              colors={[colors.storefront.green]}
+              tintColor={colors.storefront.green}
+            />
+          }
         />
       )}
 
