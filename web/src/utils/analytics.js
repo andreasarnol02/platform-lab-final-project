@@ -1,4 +1,4 @@
-const measurementId = globalThis.__MARKETPLACE_GA_ID__ || "";
+const measurementId = import.meta.env.VITE_GA_ID || "G-JY9JZ9QVNF";
 
 let initialized = false;
 
@@ -8,7 +8,7 @@ export const initAnalytics = () => {
   window.dataLayer = window.dataLayer || [];
   window.gtag = (...args) => window.dataLayer.push(args);
   window.gtag("js", new Date());
-  window.gtag("config", measurementId, { send_page_view: false });
+  window.gtag("config", measurementId, { send_page_view: true });
 
   const script = document.createElement("script");
   script.async = true;

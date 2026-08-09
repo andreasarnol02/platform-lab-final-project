@@ -41,8 +41,8 @@ npm run dev
 
 Layanan bisa diakses di:
 
-- Web client: `http://localhost:5173`
-- API: `http://localhost:4000`
+- Web client: `http://localhost:5173` (deployed di `https://marketplacestore.vercel.app/`)
+- API: `http://localhost:4000` (deployed di `https://platform-lab-final-project.onrender.com/`)
 - API health check: `http://localhost:4000/`
 
 Secara default, API juga mengizinkan origin web lokal `http://127.0.0.1:5173`.
