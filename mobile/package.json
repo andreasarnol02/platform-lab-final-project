@@ -34,7 +34,7 @@
     "web": "expo start --web",
     "eas:init": "npx -y eas-cli init --id 3720ab80-38a4-4829-b40c-38197b2ab6c3",
     "eas:build:preview": "npx -y eas-cli build --platform android --profile preview",
-    "eas:build:production": "npx -y eas-cli build --profile production"
+    "eas:build:production": "npx -y eas-cli build --platform android --profile production"
   },
   "private": true
 }
