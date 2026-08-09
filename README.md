@@ -18,6 +18,7 @@ Instal runner workspace root dan dependensi kedua aplikasi:
 npm install
 npm --prefix api install
 npm --prefix web install
+npm --prefix mobile install
 ```
 
 Buat file environment lokal:
@@ -39,6 +40,8 @@ Jalankan API dan klien web secara bersamaan dari root repositori:
 npm run dev
 ```
 
+> Catatan: `npm run dev` hanya menjalankan API + web. Aplikasi mobile dijalankan terpisah dengan `npm run mobile` (Expo) dan membutuhkan API di port 4000.
+
 Layanan tersedia di:
 
 - Klien web: `http://localhost:5173`
@@ -52,6 +55,7 @@ API juga secara default mengizinkan origin web lokal `http://127.0.0.1:5173`.
 | Perintah | Tujuan |
 | --- | --- |
 | `npm run dev` | Jalankan API dan klien web secara bersamaan |
+| `npm run mobile` | Jalankan aplikasi mobile (Expo) |
 | `npm test` | Jalankan pengujian Jest API dan web |
 | `npm run build` | Buat build produksi web |
 | `npm --prefix api test` | Jalankan hanya pengujian API |
@@ -85,6 +89,7 @@ API menegakkan autentikasi, pemisahan peran pelanggan/penjual, dan kepemilikan s
 ```text
 api/                 Express API, model, rute, middleware, dan pengujian
 web/                 Aplikasi React/Vite untuk pelanggan dan penjual
+mobile/              Aplikasi React Native/Expo (pelanggan + penjual)
 docs/                Dokumentasi produk, teknis, dan desain
 .github/workflows/   Pemeriksaan CI
 package.json         Perintah pengembangan, pengujian, dan build root

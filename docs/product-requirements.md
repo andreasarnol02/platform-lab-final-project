@@ -14,7 +14,7 @@
 
 ## 1. Ikhtisar & Visi
 
-Kami membangun **marketplace daring** yang dimodelkan berdasarkan [Tokopedia](https://www.tokopedia.com): sebuah platform tempat **penjual** independen mencantumkan produk dan **pelanggan** menelusuri, menambahkan produk ke keranjang, lalu melakukan checkout. Luaran saat ini adalah satu aplikasi web responsif yang didukung satu REST API; klien mobile native dan deployment publik masih menjadi pekerjaan mendatang.
+Kami membangun **marketplace daring** yang dimodelkan berdasarkan [Tokopedia](https://www.tokopedia.com): sebuah platform tempat **penjual** independen mencantumkan produk dan **pelanggan** menelusuri, menambahkan produk ke keranjang, lalu melakukan checkout. Luaran saat ini adalah satu aplikasi web responsif dan satu aplikasi mobile (React Native/Expo) yang didukung satu REST API; deployment publik masih menjadi pekerjaan mendatang.
 
 Marketplace ini memiliki **dua sisi**:
 
@@ -35,7 +35,7 @@ Kedua sisi menggunakan aplikasi web yang sama melalui namespace rute dan sesi ak
 | G2 | Penjual dapat menyediakan stok di marketplace dan memenuhi permintaan | Penjual → mendaftar → menambahkan produk → produk muncul di etalase → pesanan masuk → status diperbarui |
 | G3 | Penambahan ke keranjang dibatasi autentikasi | Pengguna yang telah logout tidak dapat menambahkan produk ke keranjang di **klien mana pun**, dan API menolak percobaan tersebut |
 | G4 | Satu backend melayani kedua peran marketplace | Aplikasi web terpadu menggunakan API bersama untuk alur kerja pelanggan dan penjual |
-| G5 | Menjaga pengembangan berikutnya tetap siap di-deploy | Build web/API lokal saat ini didokumentasikan; deployment publik dan artefak mobile ditunda |
+| G5 | Menjaga pengembangan berikutnya tetap siap di-deploy | Build web/API/mobile lokal didokumentasikan; deployment publik ditunda |
 
 ---
 
@@ -64,8 +64,7 @@ Kedua sisi menggunakan aplikasi web yang sama melalui namespace rute dan sesi ak
 ### 4.2 Di luar cakupan (secara eksplisit)
 - Integrasi **gateway pembayaran nyata** (Midtrans/Stripe/dll.). Checkout disimulasikan — sistem membuat pesanan dalam status `PENDING`/`PAID` tanpa menagih kartu.
 - Layanan **unggah/penyimpanan gambar** produk — gambar produk dirujuk melalui **URL**.
-- Aplikasi mobile native (React Native/Expo) ditunda hingga melampaui milestone web saat ini.
-- Deployment publik ditunda sampai alur web/API lokal selesai.
+- Deployment publik ditunda sampai alur web/mobile/API lokal selesai.
 - Penilaian, ulasan, chat/pesan, daftar keinginan, promosi/voucher.
 - Perhitungan biaya pengiriman dan integrasi kurir (nilai tetap/pengganti dapat ditampilkan).
 - Peran admin/superuser dan alat moderasi.
@@ -77,7 +76,7 @@ Kedua sisi menggunakan aplikasi web yang sama melalui namespace rute dan sesi ak
 
 ## 5. Situs Pelanggan — Persyaratan Produk
 
-Platform: **Web** (React + Vite). Klien mobile mendatang dapat menggunakan API yang sama, tetapi bukan bagian dari milestone ini.
+Platform: **Web** (React + Vite) dan **Mobile** (React Native + Expo). Kedua klien menggunakan API yang sama.
 
 ### 5.1 Daftar fitur
 
@@ -131,7 +130,7 @@ Platform: **Web** (React + Vite). Klien mobile mendatang dapat menggunakan API y
 
 ## 6. Situs Penjual — Persyaratan Produk
 
-Platform: **Web** (dasbor penjual React + Vite). Penjual memiliki **akun terpisah** dari pelanggan.
+Platform: **Web** (dasbor penjual React + Vite) dan **Mobile** (React Native + Expo). Penjual memiliki **akun terpisah** dari pelanggan.
 
 ### 6.1 Daftar fitur
 
@@ -190,7 +189,7 @@ Platform: **Web** (dasbor penjual React + Vite). Penjual memiliki **akun terpisa
 | **Kemudahan penggunaan** | Navigasi konsisten; keadaan kosong/memuat/kesalahan yang jelas; tindakan utama dapat dijangkau dalam ≤ 3 ketukan. |
 | **Performa** | Render pertama daftar produk selesai dalam beberapa detik pada koneksi normal; gunakan pagination atau batasi ukuran daftar agar payload tetap wajar. |
 | **Keamanan** | Password di-hash; rahasia disimpan dalam variabel lingkungan; rute terlindungi diberlakukan di sisi server; input divalidasi (lihat TRD §9). |
-| **Ketersediaan** | Alur web/API lokal dapat dijalankan berdasarkan penyiapan yang didokumentasikan; deployment publik dan artefak mobile ditunda. |
+| **Ketersediaan** | Alur web/mobile/API lokal dapat dijalankan berdasarkan penyiapan yang didokumentasikan; deployment publik ditunda. |
 | **Kemudahan pemeliharaan** | Permukaan rute pelanggan dan penjual tetap terpisah dalam satu aplikasi web yang didukung API bersama. |
 | **Observabilitas** | Analitik/pemantauan dasar dipasang pada klien web (Google Analytics atau LogRocket). |
 
@@ -214,7 +213,7 @@ Marketplace ini dirancang agar setiap komponen yang dinilai dapat dipetakan ke f
 |---------------|-------|-----------|
 | **Soal 1 (20%)** | Frontend Web React | C1–C6 web pelanggan (beranda, daftar, detail, keranjang, checkout) + React Router + Flexbox/Grid responsif |
 | **Soal 2 (20%)** | Backend Node/Express + MongoDB | API bersama: pengelolaan produk & pengguna (pelanggan/penjual), CRUD + validasi (lihat TRD §6) |
-| **Soal 3 (20%)** | Mobile React Native | Milestone mobile ditunda; kontrak REST bersama didokumentasikan untuk klien pelanggan dan penjual mendatang |
+| **Soal 3 (20%)** | Mobile React Native | Klien mobile Expo untuk pelanggan (C1–C9) dan penjual (S1–S8): etalase, keranjang, checkout, riwayat pesanan, dasbor penjual, produk, pesanan — memakai kontrak REST bersama |
 | **Soal 4 (20%)** | Integrasi Data & Autentikasi | Autentikasi JWT C8/S1, rute terlindungi & terbatas BR-1/BR-2, integrasi API Axios/Fetch |
 | **Soal 5 (15%)** | Deployment & Pemantauan | Analitik web diimplementasikan; deployment web/API publik dan pengiriman Expo masih ditunda |
 

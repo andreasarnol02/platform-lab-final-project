@@ -14,14 +14,14 @@
 
 ## 1. Pendahuluan
 
-Dokumen ini menetapkan **rancangan teknis** untuk marketplace yang didefinisikan dalam `product-requirements.md`. Dokumen ini mencakup arsitektur sistem, API bersama, model data, autentikasi/otorisasi, aplikasi web terpadu, pemantauan, dan penyiapan lokal. Klien mobile dan deployment publik didokumentasikan sebagai pekerjaan mendatang.
+Dokumen ini menetapkan **rancangan teknis** untuk marketplace yang didefinisikan dalam `product-requirements.md`. Dokumen ini mencakup arsitektur sistem, API bersama, model data, autentikasi/otorisasi, aplikasi web terpadu, klien mobile, pemantauan, dan penyiapan lokal. Deployment publik didokumentasikan sebagai pekerjaan mendatang.
 
 Sistem saat ini adalah **satu aplikasi web terpadu yang dilayani satu backend**:
 
 1. Rute etalase pelanggan (React + Vite)
 2. Rute dasbor penjual (React + Vite)
 
-Kedua permukaan rute menggunakan satu **Node.js + Express REST API** yang didukung **MongoDB**. Klien mobile native dapat ditambahkan kemudian tanpa mengubah kontrak API.
+Kedua permukaan rute menggunakan satu **Node.js + Express REST API** yang didukung **MongoDB**. Klien mobile native (`mobile/`) menggunakan kontrak API yang sama tanpa mengubahnya.
 
 ---
 
@@ -73,7 +73,7 @@ sequenceDiagram
 | Lapisan | Teknologi | Catatan |
 |-------|------------|-------|
 | Web Pelanggan/Penjual | **React 19 + React Router 8**, dibangun dengan **Vite** | Responsif melalui Flexbox / CSS Grid |
-| Mobile (kedua sisi) | React Native + Expo | Ditunda; klien mendatang akan menggunakan kembali API |
+| Mobile (kedua sisi) | **React Native + Expo** (SDK 57) | Pelanggan + penjual dalam satu aplikasi; memakai API yang sama |
 | Klien HTTP | **Axios** (Fetch dapat digunakan) | Pola request/interceptor bersama |
 | Backend | **Node.js + Express.js** | API RESTful |
 | Database | **MongoDB** (Atlas) + **Mongoose** | Skema & validasi |
@@ -81,7 +81,7 @@ sequenceDiagram
 | Validasi | **express-validator** (atau `zod`) | Validasi input di sisi server |
 | Deployment — Web | Vercel (atau Netlify) | Deployment publik ditunda; satu proyek web saat diaktifkan |
 | Deployment — API | Render (atau Heroku) | Deployment publik ditunda; satu layanan saat diaktifkan |
-| Deployment — Mobile | Expo (EAS) | Ditunda |
+| Deployment — Mobile | Expo (EAS) | Ditunda; dijalankan via Expo Go / development build |
 | Pemantauan | **Google Analytics** atau **LogRocket** | Pada klien web |
 
 > Stack ditetapkan agar sesuai dengan modul Lab yang dinilai. Pilih **satu** opsi jika terdapat beberapa alternatif (misalnya Vercel *atau* Netlify) dan gunakan secara konsisten. Klien web menggunakan API deklaratif React Router 8 yang diimpor dari `react-router`.
@@ -90,7 +90,7 @@ sequenceDiagram
 
 ## 4. Struktur Repositori yang Disarankan
 
-Monorepo membuat API bersama dan klien web terpadu mudah ditemukan; klien mobile mendatang dapat ditambahkan tanpa mengubah batasan saat ini.
+Monorepo membuat API bersama dan klien web terpadu mudah ditemukan; klien mobile (`mobile/`) berbagi kontrak API tanpa mengubah batasan saat ini.
 
 ```
 marketplace/
@@ -325,7 +325,7 @@ flowchart LR
   - `requireCustomer` / `requireSeller` — memastikan `req.user.type` (memberlakukan BR-1).
   - `requireOwnership` — untuk penulisan produk/pesanan, memastikan sumber daya dimiliki `req.user.sub` (memberlakukan BR-4).
 - **Rute terlindungi (Soal 4):** keranjang, checkout, riwayat pesanan, profil (pelanggan); semua rute penulisan produk dan pesanan (penjual).
-- **Penyimpanan token di web:** sesi pelanggan dan penjual menggunakan kunci localStorage yang terpisah. Klien mobile mendatang harus menggunakan Expo **SecureStore** (diutamakan) atau **AsyncStorage**.
+- **Penyimpanan token di web:** sesi pelanggan dan penjual menggunakan kunci localStorage yang terpisah. Klien mobile menggunakan Expo **SecureStore** untuk menyimpan token.
 
 ---
 
@@ -341,17 +341,17 @@ flowchart LR
 - **Lapisan API:** klien Axios pelanggan dan penjual menggunakan URL dasar yang sama dari env, sambil membaca kunci sesi browser yang terpisah; interceptor permintaan memasang token Bearer dan interceptor respons menangani `401`.
 - **Responsif (Soal 1):** Flexbox/CSS Grid; grid produk menjadi satu kolom pada viewport sempit; tidak ada tata letak dengan lebar piksel tetap.
 
-### 8.2 Mobile Pelanggan / Penjual Mendatang (React Native + Expo)
+### 8.2 Mobile Pelanggan / Penjual (React Native + Expo) — terimplementasi
 
 - **Navigasi:** React Navigation (stack + tabs).
-  - Layar mobile pelanggan: Daftar Produk, Detail Produk, Masuk/Daftar, Riwayat Pesanan (+ Keranjang/Checkout opsional).
-  - Layar mobile penjual: Masuk/Daftar, Produk Saya, Tambah/Edit Produk, Kotak Masuk Pesanan, Perbarui Status.
-- **Integrasi API:** gunakan kembali path REST dan pola Axios yang sama; URL dasar mengarah ke API yang di-deploy.
-- **Persistensi token:** gunakan SecureStore/AsyncStorage; bootstrap autentikasi saat peluncuran memulihkan sesi.
+  - Layar mobile pelanggan: Beranda, Katalog (pencarian & filter kategori), Detail Produk, Keranjang, Checkout, Riwayat & Detail Pesanan, Masuk/Daftar, Profil.
+  - Layar mobile penjual: Masuk/Daftar, Dasbor, Produk Saya, Tambah/Edit Produk, Kotak Masuk Pesanan (perbarui status).
+- **Integrasi API:** memakai path REST dan pola Axios yang sama; base URL digerakkan environment (`EXPO_PUBLIC_API_URL`, dengan fallback auto-detect host pengembangan).
+- **Persistensi token:** SecureStore; bootstrap autentikasi saat peluncuran memulihkan sesi.
 
 ### 8.3 Konvensi klien bersama
 
-- Base URL API yang digerakkan oleh environment (`VITE_API_URL`; klien Expo mendatang dapat menggunakan `extra.apiUrl`) — jangan pernah menulis host yang di-deploy secara hard-code.
+- Base URL API yang digerakkan oleh environment (`VITE_API_URL` di web; `EXPO_PUBLIC_API_URL` di mobile) — jangan pernah menulis host yang di-deploy secara hard-code.
 - Keadaan **memuat / kosong / kesalahan** yang eksplisit pada setiap layar data.
 - Validasi di sisi klien hanya untuk UX; API adalah sumber kebenaran.
 
@@ -392,7 +392,7 @@ flowchart LR
 | Web Terpadu | Vercel (atau Netlify) | URL publik ditunda |
 | API | Render (atau Heroku) | Base URL HTTPS publik ditunda |
 | Database | MongoDB Atlas | URI koneksi (env) |
-| Mobile (keduanya) | Expo | Ditunda |
+| Mobile (kedua sisi) | Expo | Ditunda (EAS Build); build lokal via Expo Go / development build |
 
 - **Promosi env-var:** setiap target deployment memiliki env var sendiri (API menyimpan `MONGODB_URI`, `JWT_SECRET`; web menyimpan `VITE_API_URL` dan `VITE_GA_ID` opsional).
 - **Milestone saat ini:** pastikan build API dan web lokal yang didokumentasikan tetap berfungsi sebelum memilih target hosting publik.
@@ -430,7 +430,7 @@ npm run dev                  # http://localhost:5173
 # npm --prefix web install
 # npm run dev                  # menjalankan API dan web bersamaan
 
-# Klien mobile native ditunda untuk milestone ini.
+# 3. Mobile: cd mobile && npx expo start   (atau npm run mobile dari root)
 ```
 
 ### 12.1 Variabel lingkungan
@@ -443,7 +443,7 @@ npm run dev                  # http://localhost:5173
 | API | `CORS_ORIGINS` | `https://marketplace.example.app` |
 | Web | `VITE_API_URL` | `https://api.example.com/api` |
 | Web | `VITE_GA_ID` / id LogRocket | `G-XXXX` |
-| Mobile | `apiUrl` (Expo `extra` mendatang) | `https://api.example.com/api` |
+| Mobile | `EXPO_PUBLIC_API_URL` (opsional) | `http://localhost:4000/api` (fallback auto-detect host dev) |
 
 ---
 
@@ -453,7 +453,7 @@ npm run dev                  # http://localhost:5173
 |---------------|-------|--------------------|
 | **Soal 1 (20%)** | Frontend Web React | §8.1 — React Router, `ProtectedRoute`, Flexbox/Grid responsif, beranda/daftar/detail/keranjang/checkout |
 | **Soal 2 (20%)** | Backend Node/Express + MongoDB | model data §5, REST API §6, validasi §9 — CRUD produk & pengguna dengan validasi input |
-| **Soal 3 (20%)** | Mobile React Native | Milestone ditunda; kontrak REST §6 tetap dapat digunakan kembali oleh aplikasi Expo mendatang |
+| **Soal 3 (20%)** | Mobile React Native | Klien Expo pelanggan + penjual §8.2: navigasi stack+tabs, SecureStore, integrasi API axios, base URL env-driven |
 | **Soal 4 (20%)** | Integrasi Data & Autentikasi | autentikasi JWT §7, rute terlindungi, penjaga kepemilikan/jenis; integrasi Axios/Fetch §8.3 |
 | **Soal 5 (15%)** | Deployment & Pemantauan | Google Analytics §11 diimplementasikan; deployment publik §10 ditunda |
 
