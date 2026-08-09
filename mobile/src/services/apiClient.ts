@@ -38,7 +38,7 @@ const getActiveToken = async (): Promise<string | null> => {
   }
 };
 
-/** Universal fetch wrapper with authorization header & error normalization */
+/** Universal fetch wrapper with authorization header, 30s timeout & error normalization */
 export async function apiRequest<T = any>(
   endpoint: string,
   options: RequestInit = {}
@@ -56,11 +56,17 @@ export async function apiRequest<T = any>(
     headers["Authorization"] = `Bearer ${token}`;
   }
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 seconds timeout for Render cold start
+
   try {
     const response = await fetch(url, {
       ...options,
       headers,
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
 
     const json = await response.json().catch(() => null);
 
@@ -74,12 +80,23 @@ export async function apiRequest<T = any>(
 
     return json as ApiResponse<T>;
   } catch (error: any) {
+    clearTimeout(timeoutId);
+
     if (error instanceof ApiError) {
       throw error;
     }
+
     console.error(`[API Network Error] ${options.method || "GET"} ${url}:`, error);
+
+    if (error.name === "AbortError") {
+      throw new ApiError(
+        "Koneksi ke server cloud (Render) waktu habis (timeout). Server mungkin sedang melakukan cold start, silakan coba kembali dalam beberapa detik.",
+        504
+      );
+    }
+
     throw new ApiError(
-      error.message || "Gagal terhubung ke server API lokal",
+      error.message || "Gagal terhubung ke server Web API backend",
       500
     );
   }

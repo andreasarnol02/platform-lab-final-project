@@ -18,46 +18,14 @@ export interface AppConfig {
   VERSION: string;
 }
 
-/**
- * Dynamically extract Metro Bundler Host IP (e.g., 192.168.x.x)
- * from scriptURL when running via Expo Go on physical devices or emulators.
- */
-export const getDevServerIp = (): string | null => {
-  try {
-    const scriptURL = NativeModules.SourceCode?.scriptURL;
-    if (scriptURL) {
-      // scriptURL format: "http://192.168.1.10:8081/index.bundle?platform=android..."
-      const hostWithPort = scriptURL.split("://")[1]?.split("/")[0];
-      if (hostWithPort) {
-        const ip = hostWithPort.split(":")[0];
-        if (ip && ip !== "localhost" && ip !== "127.0.0.1") {
-          return ip;
-        }
-      }
-    }
-  } catch (err) {
-    console.warn("Could not determine dev server IP automatically:", err);
-  }
-  return null;
-};
+/** Default production Render Web API URL */
+const RENDER_API_URL = "https://platform-lab-final-project.onrender.com/api";
 
 const getDefaultApiUrl = (): string => {
   if (process.env.EXPO_PUBLIC_API_URL) {
     return process.env.EXPO_PUBLIC_API_URL;
   }
-
-  // Automatically detect host IP when running via Expo Go on physical devices
-  const devIp = getDevServerIp();
-  if (devIp) {
-    return `http://${devIp}:4000/api`;
-  }
-
-  // Fallback for Android Emulator
-  if (Platform.OS === "android") {
-    return "http://10.0.2.2:4000/api";
-  }
-
-  return "http://localhost:4000/api";
+  return RENDER_API_URL;
 };
 
 export const CONFIG: AppConfig = {
