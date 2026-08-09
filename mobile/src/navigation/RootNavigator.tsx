@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { View, ActivityIndicator, StyleSheet } from "react-native";
-import { NavigationContainer } from "@react-navigation/native";
+import { NavigationContainer, useNavigationContainerRef } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 import CONFIG from "../services/config";
+import { analytics } from "../services/analyticsService";
 import {
   getCustomerToken,
   getSellerToken,
@@ -34,6 +35,8 @@ export const RootNavigator = () => {
   const [loading, setLoading] = useState(true);
   const [initialRoute, setInitialRoute] =
     useState<keyof RootStackParamList>("Home");
+  const navigationRef = useNavigationContainerRef();
+  const routeNameRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {
     const initializeAppState = async () => {
@@ -72,7 +75,26 @@ export const RootNavigator = () => {
   }
 
   return (
-    <AppNavigationContainer>
+    <AppNavigationContainer
+      ref={navigationRef}
+      onReady={() => {
+        const currentRoute = navigationRef.getCurrentRoute() as any;
+        const currentRouteName = currentRoute?.name;
+        routeNameRef.current = currentRouteName;
+        if (currentRouteName) {
+          analytics.logPageView(currentRouteName);
+        }
+      }}
+      onStateChange={() => {
+        const previousRouteName = routeNameRef.current;
+        const currentRoute = navigationRef.getCurrentRoute() as any;
+        const currentRouteName = currentRoute?.name;
+        if (currentRouteName && previousRouteName !== currentRouteName) {
+          routeNameRef.current = currentRouteName;
+          analytics.logPageView(currentRouteName);
+        }
+      }}
+    >
       <AppStackNavigator
         initialRouteName={initialRoute}
         screenOptions={{
