@@ -47,6 +47,12 @@ Layanan bisa diakses di:
 
 Secara default, API juga mengizinkan origin web lokal `http://127.0.0.1:5173`.
 
+## Download Aplikasi Mobile
+
+Build Expo (EAS) untuk aplikasi mobile bisa di-download di:
+
+- [Expo build: personal-proj](https://expo.dev/accounts/gildoraths-team/projects/personal-proj/builds/96367953-0390-4787-89e4-9786eb56bc02)
+
 ## Perintah
 
 | Perintah | Keterangan |
