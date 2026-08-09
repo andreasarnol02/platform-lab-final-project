@@ -33,53 +33,167 @@ const sendCheckoutError = (res, error) => res.status(error.statusCode).json({
     data: null,
 });
 
+const performCheckoutLogic = async (sessionOption = {}) => {
+    const cartQuery = Cart.findOne({ customer: req.user.id }).populate("items.product");
+    if (sessionOption.session) cartQuery.session(sessionOption.session);
+    const cart = await cartQuery;
+
+    if (!cart || cart.items.length === 0) {
+        throw new CheckoutError("Cart is empty");
+    }
+
+    const groups = new Map();
+
+    for (const item of cart.items) {
+        if (!item.product || !item.product.isActive) {
+            throw new CheckoutError("One of the products is no longer available");
+        }
+
+        const sellerId = item.product.seller.toString();
+        if (!groups.has(sellerId)) {
+            groups.set(sellerId, []);
+        }
+        groups.get(sellerId).push(item);
+    }
+
+    for (const item of cart.items) {
+        const findOptions = {
+            _id: item.product._id,
+            isActive: true,
+            stock: { $gte: item.quantity },
+        };
+        const updateOptions = { new: true, ...sessionOption };
+        const product = await Product.findOneAndUpdate(
+            findOptions,
+            { $inc: { stock: -item.quantity } },
+            updateOptions
+        );
+
+        if (!product) {
+            throw new CheckoutError(`Stok tidak cukup untuk "${item.product.name}"`);
+        }
+    }
+
+    const orderPayloads = [...groups].map(([sellerId, items]) => ({
+        customer: req.user.id,
+        seller: sellerId,
+        items: items.map((item) => ({
+            product: item.product._id,
+            name: item.product.name,
+            quantity: item.quantity,
+            price: item.product.price,
+        })),
+        totalPrice: items.reduce(
+            (total, item) => total + item.product.price * item.quantity,
+            0
+        ),
+        shippingAddress,
+        paymentMethod,
+        status: "PAID",
+    }));
+
+    const createdOrders = await Order.create(orderPayloads, sessionOption);
+    cart.items = [];
+    await cart.save(sessionOption);
+    return createdOrders;
+};
+
 const checkout = async (req, res) => {
     let session;
     let createdOrders = [];
 
     try {
         const { shippingAddress, paymentMethod } = req.body;
-        session = await mongoose.startSession();
 
-        await session.withTransaction(async () => {
-            const cart = await Cart.findOne({ customer: req.user.id })
-                .session(session)
-                .populate("items.product");
+        try {
+            session = await mongoose.startSession();
+            await session.withTransaction(async () => {
+                const cart = await Cart.findOne({ customer: req.user.id })
+                    .session(session)
+                    .populate("items.product");
 
+                if (!cart || cart.items.length === 0) {
+                    throw new CheckoutError("Cart is empty");
+                }
+
+                const groups = new Map();
+
+                for (const item of cart.items) {
+                    if (!item.product || !item.product.isActive) {
+                        throw new CheckoutError("One of the products is no longer available");
+                    }
+
+                    const sellerId = item.product.seller.toString();
+                    if (!groups.has(sellerId)) {
+                        groups.set(sellerId, []);
+                    }
+                    groups.get(sellerId).push(item);
+                }
+
+                for (const item of cart.items) {
+                    const product = await Product.findOneAndUpdate(
+                        {
+                            _id: item.product._id,
+                            isActive: true,
+                            stock: { $gte: item.quantity },
+                        },
+                        { $inc: { stock: -item.quantity } },
+                        { new: true, session }
+                    );
+
+                    if (!product) {
+                        throw new CheckoutError(`Stok tidak cukup untuk "${item.product.name}"`);
+                    }
+                }
+
+                const orderPayloads = [...groups].map(([sellerId, items]) => ({
+                    customer: req.user.id,
+                    seller: sellerId,
+                    items: items.map((item) => ({
+                        product: item.product._id,
+                        name: item.product.name,
+                        quantity: item.quantity,
+                        price: item.product.price,
+                    })),
+                    totalPrice: items.reduce(
+                        (total, item) => total + item.product.price * item.quantity,
+                        0
+                    ),
+                    shippingAddress,
+                    paymentMethod,
+                    status: "PAID",
+                }));
+
+                createdOrders = await Order.create(orderPayloads, { session });
+                cart.items = [];
+                await cart.save({ session });
+            });
+        } catch (txnError) {
+            if (txnError instanceof CheckoutError) throw txnError;
+            // Fallback for standalone MongoDB instance without replica set support
+            const cart = await Cart.findOne({ customer: req.user.id }).populate("items.product");
             if (!cart || cart.items.length === 0) {
                 throw new CheckoutError("Cart is empty");
             }
-
             const groups = new Map();
-
             for (const item of cart.items) {
                 if (!item.product || !item.product.isActive) {
                     throw new CheckoutError("One of the products is no longer available");
                 }
-
                 const sellerId = item.product.seller.toString();
-                if (!groups.has(sellerId)) {
-                    groups.set(sellerId, []);
-                }
+                if (!groups.has(sellerId)) groups.set(sellerId, []);
                 groups.get(sellerId).push(item);
             }
-
             for (const item of cart.items) {
                 const product = await Product.findOneAndUpdate(
-                    {
-                        _id: item.product._id,
-                        isActive: true,
-                        stock: { $gte: item.quantity },
-                    },
+                    { _id: item.product._id, isActive: true, stock: { $gte: item.quantity } },
                     { $inc: { stock: -item.quantity } },
-                    { new: true, session }
+                    { new: true }
                 );
-
                 if (!product) {
                     throw new CheckoutError(`Stok tidak cukup untuk "${item.product.name}"`);
                 }
             }
-
             const orderPayloads = [...groups].map(([sellerId, items]) => ({
                 customer: req.user.id,
                 seller: sellerId,
@@ -89,20 +203,15 @@ const checkout = async (req, res) => {
                     quantity: item.quantity,
                     price: item.product.price,
                 })),
-                totalPrice: items.reduce(
-                    (total, item) => total + item.product.price * item.quantity,
-                    0
-                ),
+                totalPrice: items.reduce((total, item) => total + item.product.price * item.quantity, 0),
                 shippingAddress,
                 paymentMethod,
-                // Payment is simulated, so checkout immediately confirms the order.
                 status: "PAID",
             }));
-
-            createdOrders = await Order.create(orderPayloads, { session });
+            createdOrders = await Order.create(orderPayloads);
             cart.items = [];
-            await cart.save({ session });
-        });
+            await cart.save();
+        }
 
         return res.status(201).json({
             success: true,
